@@ -678,6 +678,10 @@ def fit_mixing_curves(mixing_data, slope_bu_data):
         Coefficient for linear fit (y = a * x)
     quadratic_coeff : float
         Coefficient for quadratic fit (y = b * x^2)
+    r2_linear : float
+        R² value for linear fit
+    r2_quadratic : float
+        R² value for quadratic fit
     """
     # Flatten arrays and remove any NaN or invalid values
     mixing_data_flat = np.array(mixing_data).flatten()
@@ -708,9 +712,21 @@ def fit_mixing_curves(mixing_data, slope_bu_data):
     linear_coeff_log, _ = curve_fit(linear_func_log, log_slope_bu, log_mixing)
     linear_coeff_val = 10**linear_coeff_log[0]  # Convert back from log space
 
+    # Calculate R² for linear fit (in log space)
+    log_mixing_pred_linear = linear_func_log(log_slope_bu, linear_coeff_log[0])
+    ss_res_linear = np.sum((log_mixing - log_mixing_pred_linear)**2)
+    ss_tot_linear = np.sum((log_mixing - np.mean(log_mixing))**2)
+    r2_linear = 1 - (ss_res_linear / ss_tot_linear)
+
     # Quadratic fit: log(y) = log(b) + 2*log(x)
     quadratic_coeff_log, _ = curve_fit(quadratic_func_log, log_slope_bu, log_mixing)
     quadratic_coeff_val = 10**quadratic_coeff_log[0]  # Convert back from log space
 
-    return linear_coeff_val, quadratic_coeff_val
+    # Calculate R² for quadratic fit (in log space)
+    log_mixing_pred_quadratic = quadratic_func_log(log_slope_bu, quadratic_coeff_log[0])
+    ss_res_quadratic = np.sum((log_mixing - log_mixing_pred_quadratic)**2)
+    ss_tot_quadratic = np.sum((log_mixing - np.mean(log_mixing))**2)
+    r2_quadratic = 1 - (ss_res_quadratic / ss_tot_quadratic)
+
+    return linear_coeff_val, quadratic_coeff_val, r2_linear, r2_quadratic
 #---

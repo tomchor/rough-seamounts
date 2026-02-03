@@ -97,7 +97,7 @@ dissip_linear_ref = 2e-2 * Sb_ref
 dissip_piecewise_ref = np.maximum(dissip_linear_ref, 2e-2)
 
 # Fit curves to mixing data
-linear_coeff_val, quadratic_coeff_val = fit_mixing_curves(aaaa_sweep["ℰₚ"].values, aaaa_sweep.Slope_Bu.values)
+linear_coeff_val, quadratic_coeff_val, r2_linear, r2_quadratic = fit_mixing_curves(aaaa_sweep["ℰₚ"].values, aaaa_sweep.Slope_Bu.values)
 
 # Use fitted coefficients for reference lines
 mixing_linear_ref = linear_coeff_val * Sb_ref
@@ -110,8 +110,10 @@ ax.plot(Sb_ref, dissip_piecewise_ref, ls="--", lw=5, color="red", alpha=0.3, lab
 
 ax = axes["b"]
 ax.set_ylabel(f"Normalized buoyancy mixing, {ax.get_ylabel()}", fontsize=13)
-ax.plot(Sb_ref, mixing_linear_ref, ls="--", lw=5, color="gray", alpha=0.5, label="$\sim S_b$")
-ax.plot(Sb_ref, mixing_quadratic_ref, ls=":", lw=5, color="gray", alpha=0.5, label="$\sim S_b^2$")
+ax.plot(Sb_ref, mixing_linear_ref, ls="--", lw=5, color="gray", alpha=0.5,
+        label=f"$\\sim S_b$ ($R^2 = {r2_linear:.2f}$)")
+ax.plot(Sb_ref, mixing_quadratic_ref, ls=":", lw=5, color="gray", alpha=0.5,
+        label=f"$\\sim S_b^2$ ($R^2 = {r2_quadratic:.2f}$)")
 
 ax = axes["c"]
 ax.set_ylabel(f"Bulk mixing efficiency, {ax.get_ylabel()}", fontsize=13)
