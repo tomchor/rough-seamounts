@@ -2,6 +2,7 @@ import xarray as xr
 import pynanigans as pn
 import numpy as np
 import unicodedata
+from scipy.optimize import curve_fit
 
 #+++ Unicode normalization functions
 def normalize_unicode_name(name, form="NFD"):
@@ -654,4 +655,62 @@ def configure_dask_for_performance(num_workers=None, memory_fraction=0.10):
 
     print(f"Configured dask with {num_workers} workers, {chunk_size / 1024**2:.1f}MB chunks")
     return config
+#---
+
+#+++ Curve fitting functions
+def fit_mixing_curves(mixing_data, slope_bu_data):
+    """
+    Fit linear and quadratic curves to mixing data vs Slope Burger number.
+
+    Fits are performed in log-log space for numerical stability since the data
+    is typically plotted on log-scaled axes.
+
+    Parameters
+    ----------
+    mixing_data : array-like
+        Mixing data values (e.g., ℰₚ)
+    slope_bu_data : array-like
+        Slope Burger number values
+
+    Returns
+    -------
+    linear_coeff : float
+        Coefficient for linear fit (y = a * x)
+    quadratic_coeff : float
+        Coefficient for quadratic fit (y = b * x^2)
+    """
+    # Flatten arrays and remove any NaN or invalid values
+    mixing_data_flat = np.array(mixing_data).flatten()
+    slope_bu_data_flat = np.array(slope_bu_data).flatten()
+
+    valid_mask = (np.isfinite(mixing_data_flat) & np.isfinite(slope_bu_data_flat) &
+                  (slope_bu_data_flat > 0) & (mixing_data_flat > 0))
+    mixing_data_clean = mixing_data_flat[valid_mask]
+    slope_bu_data_clean = slope_bu_data_flat[valid_mask]
+
+    # Convert to log space for fitting (more stable for log-scaled data)
+    log_mixing = np.log10(mixing_data_clean)
+    log_slope_bu = np.log10(slope_bu_data_clean)
+
+    # Define fitting functions in log-log space
+    # Linear: log(y) = log(a) + log(x)  =>  y = a * x
+    def linear_func_log(log_x, log_a):
+        """log(y) = log(a) + log(x)"""
+        return log_a + log_x
+
+    # Quadratic: log(y) = log(b) + 2*log(x)  =>  y = b * x^2
+    def quadratic_func_log(log_x, log_b):
+        """log(y) = log(b) + 2*log(x)"""
+        return log_b + 2 * log_x
+
+    # Perform curve fitting in log space
+    # Linear fit: log(y) = log(a) + log(x)
+    linear_coeff_log, _ = curve_fit(linear_func_log, log_slope_bu, log_mixing)
+    linear_coeff_val = 10**linear_coeff_log[0]  # Convert back from log space
+
+    # Quadratic fit: log(y) = log(b) + 2*log(x)
+    quadratic_coeff_log, _ = curve_fit(quadratic_func_log, log_slope_bu, log_mixing)
+    quadratic_coeff_val = 10**quadratic_coeff_log[0]  # Convert back from log space
+
+    return linear_coeff_val, quadratic_coeff_val
 #---

@@ -3,7 +3,8 @@ sys.path.append("/glade/u/home/tomasc/repos/pynanigans")
 import pynanigans as pn
 from cycler import cycler
 from matplotlib import pyplot as plt
-from src.aux00_utils import merge_datasets, condense
+import numpy as np
+from src.aux00_utils import merge_datasets, condense, fit_mixing_curves
 from src.aux02_plotting import letterize
 
 #+++ Define simulation parameters for parameter sweep
@@ -90,16 +91,17 @@ for i, var_name in zip(axes.keys(), variables):
 #---
 
 #+++ Add reference lines and legend
-import numpy as np
 Sb_ref = np.logspace(np.log10(3e-2), np.log10(1e1), 100)
 
 dissip_linear_ref = 2e-2 * Sb_ref
 dissip_piecewise_ref = np.maximum(dissip_linear_ref, 2e-2)
 
-mixing_linear_ref = 2e-2 * Sb_ref
-mixing_quadratic_ref = 2e-2 * Sb_ref**2
+# Fit curves to mixing data
+linear_coeff_val, quadratic_coeff_val = fit_mixing_curves(aaaa_sweep["ℰₚ"].values, aaaa_sweep.Slope_Bu.values)
 
-efficiency_ref = 0.5 * Sb_ref
+# Use fitted coefficients for reference lines
+mixing_linear_ref = linear_coeff_val * Sb_ref
+mixing_quadratic_ref = quadratic_coeff_val * Sb_ref**2
 
 ax = axes["a"]
 ax.set_ylabel(f"Normalized dissipation, {ax.get_ylabel()}", fontsize=13)
