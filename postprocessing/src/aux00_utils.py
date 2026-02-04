@@ -658,6 +658,38 @@ def configure_dask_for_performance(num_workers=None, memory_fraction=0.10):
 #---
 
 #+++ Curve fitting functions
+def calculate_r2(y_actual, y_predicted):
+    """
+    Calculate R² (coefficient of determination).
+
+    Parameters
+    ----------
+    y_actual : array-like
+        Actual values
+    y_predicted : array-like
+        Predicted values
+
+    Returns
+    -------
+    r2 : float
+        R² value. Returns 0.0 if total sum of squares is zero.
+    """
+    y_actual = np.array(y_actual)
+    y_predicted = np.array(y_predicted)
+
+    # Calculate sum of squared residuals
+    ss_res = np.sum((y_actual - y_predicted)**2)
+
+    # Calculate total sum of squares
+    ss_tot = np.sum((y_actual - np.mean(y_actual))**2)
+
+    # Avoid division by zero
+    if ss_tot > 0:
+        r2 = 1 - (ss_res / ss_tot)
+    else:
+        r2 = 0.0
+    return r2
+
 def fit_mixing_curves(mixing_data, slope_bu_data):
     """
     Fit linear and quadratic curves to mixing data vs Slope Burger number.
