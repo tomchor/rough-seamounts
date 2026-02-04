@@ -2,6 +2,7 @@ import xarray as xr
 import pynanigans as pn
 import numpy as np
 import unicodedata
+from scipy.optimize import curve_fit
 
 #+++ Unicode normalization functions
 def normalize_unicode_name(name, form="NFD"):
@@ -654,4 +655,244 @@ def configure_dask_for_performance(num_workers=None, memory_fraction=0.10):
 
     print(f"Configured dask with {num_workers} workers, {chunk_size / 1024**2:.1f}MB chunks")
     return config
+#---
+
+#+++ Curve fitting functions
+def calculate_r2(y_actual, y_predicted):
+    """
+    Calculate R² (coefficient of determination).
+
+    Parameters
+    ----------
+    y_actual : array-like
+        Actual values
+    y_predicted : array-like
+        Predicted values
+
+    Returns
+    -------
+    r2 : float
+        R² value. Returns 0.0 if total sum of squares is zero.
+    """
+    y_actual = np.array(y_actual)
+    y_predicted = np.array(y_predicted)
+
+    # Calculate sum of squared residuals
+    ss_res = np.sum((y_actual - y_predicted)**2)
+
+    # Calculate total sum of squares
+    ss_tot = np.sum((y_actual - np.mean(y_actual))**2)
+
+    # Avoid division by zero
+    if ss_tot > 0:
+        r2 = 1 - (ss_res / ss_tot)
+    else:
+        r2 = 0.0
+    return r2
+
+def fit_mixing_curves(mixing_data, slope_bu_data):
+    """
+    Fit linear and quadratic curves to mixing data vs Slope Burger number.
+
+    Fits are performed in log-log space for numerical stability since the data
+    is typically plotted on log-scaled axes.
+
+    Parameters
+    ----------
+    mixing_data : array-like
+        Mixing data values (e.g., ℰₚ)
+    slope_bu_data : array-like
+        Slope Burger number values
+
+    Returns
+    -------
+    linear_coeff : float
+        Coefficient for linear fit (y = a * x)
+    quadratic_coeff : float
+        Coefficient for quadratic fit (y = b * x^2)
+    r2_linear : float
+        R² value for linear fit
+    r2_quadratic : float
+        R² value for quadratic fit
+    """
+    # Flatten arrays and remove any NaN or invalid values
+    mixing_data_flat = np.array(mixing_data).flatten()
+    slope_bu_data_flat = np.array(slope_bu_data).flatten()
+
+    valid_mask = (np.isfinite(mixing_data_flat) & np.isfinite(slope_bu_data_flat) &
+                  (slope_bu_data_flat > 0) & (mixing_data_flat > 0))
+    mixing_data_clean = mixing_data_flat[valid_mask]
+    slope_bu_data_clean = slope_bu_data_flat[valid_mask]
+
+    # Convert to log space for fitting (more stable for log-scaled data)
+    log_mixing = np.log10(mixing_data_clean)
+    log_slope_bu = np.log10(slope_bu_data_clean)
+
+    # Define fitting functions in log-log space
+    # Linear: log(y) = log(a) + log(x)  =>  y = a * x
+    def linear_func_log(log_x, log_a):
+        """log(y) = log(a) + log(x)"""
+        return log_a + log_x
+
+    # Quadratic: log(y) = log(b) + 2*log(x)  =>  y = b * x^2
+    def quadratic_func_log(log_x, log_b):
+        """log(y) = log(b) + 2*log(x)"""
+        return log_b + 2 * log_x
+
+    # Perform curve fitting in log space
+    # Linear fit: log(y) = log(a) + log(x)
+    linear_coeff_log, _ = curve_fit(linear_func_log, log_slope_bu, log_mixing)
+    linear_coeff_val = 10**linear_coeff_log[0]  # Convert back from log space
+
+    # Calculate R² for linear fit (in log space)
+    log_mixing_pred_linear = linear_func_log(log_slope_bu, linear_coeff_log[0])
+    r2_linear = calculate_r2(log_mixing, log_mixing_pred_linear)
+
+    # Quadratic fit: log(y) = log(b) + 2*log(x)
+    quadratic_coeff_log, _ = curve_fit(quadratic_func_log, log_slope_bu, log_mixing)
+    quadratic_coeff_val = 10**quadratic_coeff_log[0]  # Convert back from log space
+
+    # Calculate R² for quadratic fit (in log space)
+    log_mixing_pred_quadratic = quadratic_func_log(log_slope_bu, quadratic_coeff_log[0])
+    r2_quadratic = calculate_r2(log_mixing, log_mixing_pred_quadratic)
+
+    return linear_coeff_val, quadratic_coeff_val, r2_linear, r2_quadratic
+#---
+
+def fit_dissipation_curves(dissipation_data, slope_bu_data, flexible_piecewise=False):
+    """
+    Fit linear, piecewise, and constant curves to dissipation data vs Slope Burger number.
+
+    Fits are performed in log-log space for numerical stability since the data
+    is typically plotted on log-scaled axes.
+
+    Parameters
+    ----------
+    dissipation_data : array-like
+        Dissipation data values (e.g., ℰₖ)
+    slope_bu_data : array-like
+        Slope Burger number values
+    flexible_piecewise : bool, optional
+        If True, allows the piecewise fit to use a different linear coefficient
+        than the linear fit. If False (default), the piecewise fit uses the same
+        linear coefficient as the linear fit.
+
+    Returns
+    -------
+    linear_coeff : float
+        Coefficient for linear fit (y = a * x)
+    piecewise_coeff : float
+        Coefficient for linear part of piecewise fit (y = max(a * x, c)).
+        When flexible_piecewise=False, this equals linear_coeff.
+    piecewise_const : float
+        Constant threshold for piecewise fit (y = max(a * x, c))
+    constant_val : float
+        Constant value for constant fit (y = c)
+    r2_linear : float
+        R² value for linear fit
+    r2_piecewise : float
+        R² value for piecewise fit
+    r2_constant : float
+        R² value for constant fit
+    """
+    # Flatten arrays and remove any NaN or invalid values
+    dissipation_data_flat = np.array(dissipation_data).flatten()
+    slope_bu_data_flat = np.array(slope_bu_data).flatten()
+
+    valid_mask = (np.isfinite(dissipation_data_flat) & np.isfinite(slope_bu_data_flat) &
+                  (slope_bu_data_flat > 0) & (dissipation_data_flat > 0))
+    dissipation_data_clean = dissipation_data_flat[valid_mask]
+    slope_bu_data_clean = slope_bu_data_flat[valid_mask]
+
+    # Convert to log space for fitting (more stable for log-scaled data)
+    log_dissipation = np.log10(dissipation_data_clean)
+    log_slope_bu = np.log10(slope_bu_data_clean)
+
+    # Define fitting functions in log-log space
+    # Linear: log(y) = log(a) + log(x)  =>  y = a * x
+    def linear_func_log(log_x, log_a):
+        """log(y) = log(a) + log(x)"""
+        return log_a + log_x
+
+    # Perform curve fitting in log space
+    # Linear fit: log(y) = log(a) + log(x)
+    linear_coeff_log, _ = curve_fit(linear_func_log, log_slope_bu, log_dissipation)
+    linear_coeff_val = 10**linear_coeff_log[0]  # Convert back from log space
+
+    # Calculate R² for linear fit (in log space)
+    log_dissipation_pred_linear = linear_func_log(log_slope_bu, linear_coeff_log[0])
+    r2_linear = calculate_r2(log_dissipation, log_dissipation_pred_linear)
+
+    # Constant fit: log(y) = log(c)  =>  y = c
+    # The best constant fit in log space is the mean of log values
+    log_constant_val = np.mean(log_dissipation)
+    constant_val = 10**log_constant_val  # Convert back from log space
+
+    # Calculate R² for constant fit (in log space)
+    log_dissipation_pred_constant = np.full_like(log_dissipation, log_constant_val)
+    r2_constant = calculate_r2(log_dissipation, log_dissipation_pred_constant)
+
+    # Piecewise: log(y) = max(log(a) + log(x), log(c))  =>  y = max(a * x, c)
+    log_c_init = np.min(log_dissipation)
+
+    if flexible_piecewise:
+        # Fit both coefficient and constant for piecewise function
+        def piecewise_func_log_flexible(log_x, log_a, log_c):
+            """log(y) = max(log(a) + log(x), log(c)) where both log(a) and log(c) are fitted"""
+            linear_part = log_a + log_x
+            const_part = np.full_like(log_x, log_c)
+            return np.maximum(linear_part, const_part)
+
+        try:
+            piecewise_coeff_log, _ = curve_fit(
+                piecewise_func_log_flexible, log_slope_bu, log_dissipation,
+                p0=[linear_coeff_log[0], log_c_init], maxfev=10000
+            )
+            piecewise_coeff_val = 10**piecewise_coeff_log[0]  # Convert back from log space
+            piecewise_const_val = 10**piecewise_coeff_log[1]  # Convert back from log space
+
+            # Calculate R² for piecewise fit (in log space)
+            log_dissipation_pred_piecewise = piecewise_func_log_flexible(
+                log_slope_bu, piecewise_coeff_log[0], piecewise_coeff_log[1]
+            )
+            r2_piecewise = calculate_r2(log_dissipation, log_dissipation_pred_piecewise)
+        except (RuntimeError, ValueError):
+            # If fit fails, use linear coefficient and minimum value as fallback
+            piecewise_coeff_val = linear_coeff_val
+            piecewise_const_val = 10**log_c_init
+            log_dissipation_pred_piecewise = piecewise_func_log_flexible(
+                log_slope_bu, linear_coeff_log[0], log_c_init
+            )
+            r2_piecewise = calculate_r2(log_dissipation, log_dissipation_pred_piecewise)
+    else:
+        # Use the linear coefficient from above, only fit the constant c
+        def piecewise_func_log_fixed_a(log_x, log_c):
+            """log(y) = max(log(a) + log(x), log(c)) where log(a) is fixed from linear fit"""
+            linear_part = linear_coeff_log[0] + log_x
+            const_part = np.full_like(log_x, log_c)
+            return np.maximum(linear_part, const_part)
+
+        try:
+            piecewise_const_log, _ = curve_fit(
+                piecewise_func_log_fixed_a, log_slope_bu, log_dissipation,
+                p0=[log_c_init], maxfev=10000
+            )
+            piecewise_coeff_val = linear_coeff_val  # Same as linear fit
+            piecewise_const_val = 10**piecewise_const_log[0]  # Convert back from log space
+
+            # Calculate R² for piecewise fit (in log space)
+            log_dissipation_pred_piecewise = piecewise_func_log_fixed_a(
+                log_slope_bu, piecewise_const_log[0]
+            )
+            r2_piecewise = calculate_r2(log_dissipation, log_dissipation_pred_piecewise)
+        except (RuntimeError, ValueError):
+            # If fit fails, use linear coefficient and minimum value as fallback
+            piecewise_coeff_val = linear_coeff_val
+            piecewise_const_val = 10**log_c_init
+            log_dissipation_pred_piecewise = piecewise_func_log_fixed_a(
+                log_slope_bu, log_c_init
+            )
+            r2_piecewise = calculate_r2(log_dissipation, log_dissipation_pred_piecewise)
+
+    return linear_coeff_val, piecewise_coeff_val, piecewise_const_val, constant_val, r2_linear, r2_piecewise, r2_constant
 #---
