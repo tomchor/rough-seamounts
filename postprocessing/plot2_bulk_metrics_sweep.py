@@ -155,8 +155,8 @@ for ax in (axes["a"], axes["b"]):
 axes["c"].set_ylim(0, 1)
 
 # Add legends for line plots only (in each panel)
-axes["a"].legend(loc="lower right", borderaxespad=0, framealpha=0.7, edgecolor="black", fancybox=False)
-axes["b"].legend(loc="lower right", borderaxespad=0, framealpha=0.7, edgecolor="black", fancybox=False)
+axes["a"].legend(loc="lower right", fontsize=11, framealpha=0.4)
+axes["b"].legend(loc="lower right", fontsize=11, framealpha=0.4)
 
 # Add shared legend for scatter plots at bottom right of figure
 fig.legend(scatter_handles, scatter_labels, loc="lower right", bbox_to_anchor=(0.28, 0.28), framealpha=0.9, edgecolor="black", fancybox=False)
