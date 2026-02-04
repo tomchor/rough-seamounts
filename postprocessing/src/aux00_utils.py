@@ -746,9 +746,7 @@ def fit_mixing_curves(mixing_data, slope_bu_data):
 
     # Calculate R² for linear fit (in log space)
     log_mixing_pred_linear = linear_func_log(log_slope_bu, linear_coeff_log[0])
-    ss_res_linear = np.sum((log_mixing - log_mixing_pred_linear)**2)
-    ss_tot_linear = np.sum((log_mixing - np.mean(log_mixing))**2)
-    r2_linear = 1 - (ss_res_linear / ss_tot_linear)
+    r2_linear = calculate_r2(log_mixing, log_mixing_pred_linear)
 
     # Quadratic fit: log(y) = log(b) + 2*log(x)
     quadratic_coeff_log, _ = curve_fit(quadratic_func_log, log_slope_bu, log_mixing)
@@ -756,9 +754,95 @@ def fit_mixing_curves(mixing_data, slope_bu_data):
 
     # Calculate R² for quadratic fit (in log space)
     log_mixing_pred_quadratic = quadratic_func_log(log_slope_bu, quadratic_coeff_log[0])
-    ss_res_quadratic = np.sum((log_mixing - log_mixing_pred_quadratic)**2)
-    ss_tot_quadratic = np.sum((log_mixing - np.mean(log_mixing))**2)
-    r2_quadratic = 1 - (ss_res_quadratic / ss_tot_quadratic)
+    r2_quadratic = calculate_r2(log_mixing, log_mixing_pred_quadratic)
 
     return linear_coeff_val, quadratic_coeff_val, r2_linear, r2_quadratic
+#---
+
+def fit_dissipation_curves(dissipation_data, slope_bu_data):
+    """
+    Fit linear and piecewise curves to dissipation data vs Slope Burger number.
+
+    Fits are performed in log-log space for numerical stability since the data
+    is typically plotted on log-scaled axes.
+
+    Parameters
+    ----------
+    dissipation_data : array-like
+        Dissipation data values (e.g., ℰₖ)
+    slope_bu_data : array-like
+        Slope Burger number values
+
+    Returns
+    -------
+    linear_coeff : float
+        Coefficient for linear fit (y = a * x)
+    piecewise_const : float
+        Constant threshold for piecewise fit (y = max(a * x, c))
+        where a is the same as linear_coeff
+    r2_linear : float
+        R² value for linear fit
+    r2_piecewise : float
+        R² value for piecewise fit
+    """
+    # Flatten arrays and remove any NaN or invalid values
+    dissipation_data_flat = np.array(dissipation_data).flatten()
+    slope_bu_data_flat = np.array(slope_bu_data).flatten()
+
+    valid_mask = (np.isfinite(dissipation_data_flat) & np.isfinite(slope_bu_data_flat) &
+                  (slope_bu_data_flat > 0) & (dissipation_data_flat > 0))
+    dissipation_data_clean = dissipation_data_flat[valid_mask]
+    slope_bu_data_clean = slope_bu_data_flat[valid_mask]
+
+    # Convert to log space for fitting (more stable for log-scaled data)
+    log_dissipation = np.log10(dissipation_data_clean)
+    log_slope_bu = np.log10(slope_bu_data_clean)
+
+    # Define fitting functions in log-log space
+    # Linear: log(y) = log(a) + log(x)  =>  y = a * x
+    def linear_func_log(log_x, log_a):
+        """log(y) = log(a) + log(x)"""
+        return log_a + log_x
+
+    # Perform curve fitting in log space
+    # Linear fit: log(y) = log(a) + log(x)
+    linear_coeff_log, _ = curve_fit(linear_func_log, log_slope_bu, log_dissipation)
+    linear_coeff_val = 10**linear_coeff_log[0]  # Convert back from log space
+
+    # Calculate R² for linear fit (in log space)
+    log_dissipation_pred_linear = linear_func_log(log_slope_bu, linear_coeff_log[0])
+    r2_linear = calculate_r2(log_dissipation, log_dissipation_pred_linear)
+
+    # Piecewise: log(y) = max(log(a) + log(x), log(c))  =>  y = max(a * x, c)
+    # Use the linear coefficient from above, only fit the constant c
+    def piecewise_func_log_fixed_a(log_x, log_c):
+        """log(y) = max(log(a) + log(x), log(c)) where log(a) is fixed from linear fit"""
+        linear_part = linear_coeff_log[0] + log_x
+        const_part = np.full_like(log_x, log_c)
+        return np.maximum(linear_part, const_part)
+
+    # Piecewise fit: log(y) = max(log(a) + log(x), log(c))
+    # Use minimum of data as initial guess for c
+    log_c_init = np.min(log_dissipation)
+    try:
+        piecewise_const_log, _ = curve_fit(
+            piecewise_func_log_fixed_a, log_slope_bu, log_dissipation,
+            p0=[log_c_init], maxfev=10000
+        )
+        piecewise_const_val = 10**piecewise_const_log[0]  # Convert back from log space
+
+        # Calculate R² for piecewise fit (in log space)
+        log_dissipation_pred_piecewise = piecewise_func_log_fixed_a(
+            log_slope_bu, piecewise_const_log[0]
+        )
+        r2_piecewise = calculate_r2(log_dissipation, log_dissipation_pred_piecewise)
+    except (RuntimeError, ValueError):
+        # If fit fails, use linear coefficient and minimum value as fallback
+        piecewise_const_val = 10**log_c_init
+        log_dissipation_pred_piecewise = piecewise_func_log_fixed_a(
+            log_slope_bu, log_c_init
+        )
+        r2_piecewise = calculate_r2(log_dissipation, log_dissipation_pred_piecewise)
+
+    return linear_coeff_val, piecewise_const_val, r2_linear, r2_piecewise
 #---
