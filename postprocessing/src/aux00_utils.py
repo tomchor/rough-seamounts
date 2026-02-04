@@ -761,7 +761,7 @@ def fit_mixing_curves(mixing_data, slope_bu_data):
 
 def fit_dissipation_curves(dissipation_data, slope_bu_data):
     """
-    Fit linear and piecewise curves to dissipation data vs Slope Burger number.
+    Fit linear, piecewise, and constant curves to dissipation data vs Slope Burger number.
 
     Fits are performed in log-log space for numerical stability since the data
     is typically plotted on log-scaled axes.
@@ -780,10 +780,14 @@ def fit_dissipation_curves(dissipation_data, slope_bu_data):
     piecewise_const : float
         Constant threshold for piecewise fit (y = max(a * x, c))
         where a is the same as linear_coeff
+    constant_val : float
+        Constant value for constant fit (y = c)
     r2_linear : float
         R² value for linear fit
     r2_piecewise : float
         R² value for piecewise fit
+    r2_constant : float
+        R² value for constant fit
     """
     # Flatten arrays and remove any NaN or invalid values
     dissipation_data_flat = np.array(dissipation_data).flatten()
@@ -812,6 +816,15 @@ def fit_dissipation_curves(dissipation_data, slope_bu_data):
     # Calculate R² for linear fit (in log space)
     log_dissipation_pred_linear = linear_func_log(log_slope_bu, linear_coeff_log[0])
     r2_linear = calculate_r2(log_dissipation, log_dissipation_pred_linear)
+
+    # Constant fit: log(y) = log(c)  =>  y = c
+    # The best constant fit in log space is the mean of log values
+    log_constant_val = np.mean(log_dissipation)
+    constant_val = 10**log_constant_val  # Convert back from log space
+
+    # Calculate R² for constant fit (in log space)
+    log_dissipation_pred_constant = np.full_like(log_dissipation, log_constant_val)
+    r2_constant = calculate_r2(log_dissipation, log_dissipation_pred_constant)
 
     # Piecewise: log(y) = max(log(a) + log(x), log(c))  =>  y = max(a * x, c)
     # Use the linear coefficient from above, only fit the constant c
@@ -844,5 +857,5 @@ def fit_dissipation_curves(dissipation_data, slope_bu_data):
         )
         r2_piecewise = calculate_r2(log_dissipation, log_dissipation_pred_piecewise)
 
-    return linear_coeff_val, piecewise_const_val, r2_linear, r2_piecewise
+    return linear_coeff_val, piecewise_const_val, constant_val, r2_linear, r2_piecewise, r2_constant
 #---

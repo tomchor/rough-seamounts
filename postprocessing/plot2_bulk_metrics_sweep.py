@@ -94,30 +94,31 @@ for i, var_name in zip(axes.keys(), variables):
 Sb_ref = np.logspace(np.log10(3e-2), np.log10(1e1), 100)
 
 # Fit curves to dissipation data
-linear_coeff_dissip_rough, piecewise_const_dissip_rough, r2_linear_dissip_rough, r2_piecewise_dissip_rough = fit_dissipation_curves(aaaa_sweep["ℰₖ"].sel(L=0).values, aaaa_sweep.Slope_Bu.sel(L=0).values)
-linear_coeff_dissip_smooth, piecewise_const_dissip_smooth, r2_linear_dissip_smooth, r2_piecewise_dissip_smooth = fit_dissipation_curves(aaaa_sweep["ℰₖ"].sel(L=0.8).values, aaaa_sweep.Slope_Bu.sel(L=0.8).values)
+lin_coeff_dissip_rough, piece_const_dissip_rough, const_val_dissip_rough, r2_lin_dissip_rough, r2_piece_dissip_rough, r2_const_dissip_rough = fit_dissipation_curves(aaaa_sweep["ℰₖ"].sel(L=0).values, aaaa_sweep.Slope_Bu.sel(L=0).values)
+lin_coeff_dissip_smooth, piece_const_dissip_smooth, const_val_dissip_smooth, r2_lin_dissip_smooth, r2_piece_dissip_smooth, r2_const_dissip_smooth = fit_dissipation_curves(aaaa_sweep["ℰₖ"].sel(L=0.8).values, aaaa_sweep.Slope_Bu.sel(L=0.8).values)
 
 # Use fitted coefficients for reference lines
-dissip_linear_ref_smooth = linear_coeff_dissip_smooth * Sb_ref
-dissip_piecewise_ref_rough = np.maximum(dissip_linear_ref_smooth, piecewise_const_dissip_rough)
+dissip_lin_ref_smooth = lin_coeff_dissip_smooth * Sb_ref
+dissip_piece_ref_rough = np.maximum(dissip_lin_ref_smooth, piece_const_dissip_rough)
+dissip_const_ref_rough = const_val_dissip_rough * np.ones_like(Sb_ref)
 
 # Fit curves to mixing data
-linear_coeff_val, quadratic_coeff_val, r2_linear, r2_quadratic = fit_mixing_curves(aaaa_sweep["ℰₚ"].values, aaaa_sweep.Slope_Bu.values)
+lin_coeff_val, quadratic_coeff_val, r2_linear, r2_quadratic = fit_mixing_curves(aaaa_sweep["ℰₚ"].values, aaaa_sweep.Slope_Bu.values)
 
 # Use fitted coefficients for reference lines
-mixing_linear_ref = linear_coeff_val * Sb_ref
+mixing_lin_ref = lin_coeff_val * Sb_ref
 mixing_quadratic_ref = quadratic_coeff_val * Sb_ref**2
 
 ax = axes["a"]
 ax.set_ylabel(f"Normalized dissipation, {ax.get_ylabel()}", fontsize=13)
-ax.plot(Sb_ref, dissip_linear_ref_smooth, ls="--", lw=5, color="blue", alpha=0.3,
-        label=f"$\\sim S_b$ ($R^2 = {r2_linear_dissip_smooth:.3f}$)")
-ax.plot(Sb_ref, dissip_piecewise_ref_rough, ls="--", lw=5, color="red", alpha=0.3,
-        label=f"$\\max(\\sim S_b, {piecewise_const_dissip_rough:.2e})$ ($R^2 = {r2_piecewise_dissip_rough:.3f}$)")
+ax.plot(Sb_ref, dissip_lin_ref_smooth, ls="--", lw=5, color="blue", alpha=0.3,
+        label=f"$\\sim S_b$ ($R^2 = {r2_lin_dissip_smooth:.3f}$)")
+ax.plot(Sb_ref, dissip_piece_ref_rough, ls="--", lw=5, color="red", alpha=0.3,
+        label=f"$\\max(\\sim S_b, {piece_const_dissip_rough:.2e})$ ($R^2 = {r2_piece_dissip_rough:.3f}$)")
 
 ax = axes["b"]
 ax.set_ylabel(f"Normalized buoyancy mixing, {ax.get_ylabel()}", fontsize=13)
-ax.plot(Sb_ref, mixing_linear_ref, ls="--", lw=5, color="gray", alpha=0.5,
+ax.plot(Sb_ref, mixing_lin_ref, ls="--", lw=5, color="gray", alpha=0.5,
         label=f"$\\sim S_b$ ($R^2 = {r2_linear:.2f}$)")
 ax.plot(Sb_ref, mixing_quadratic_ref, ls=":", lw=5, color="gray", alpha=0.5,
         label=f"$\\sim S_b^2$ ($R^2 = {r2_quadratic:.2f}$)")
