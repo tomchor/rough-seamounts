@@ -94,13 +94,38 @@ for i, var_name in zip(axes.keys(), variables):
 Sb_ref = np.logspace(np.log10(3e-2), np.log10(1e1), 100)
 
 # Fit curves to dissipation data
-lin_coeff_dissip_rough, piece_const_dissip_rough, const_val_dissip_rough, r2_lin_dissip_rough, r2_piece_dissip_rough, r2_const_dissip_rough = fit_dissipation_curves(aaaa_sweep["ℰₖ"].sel(L=0).values, aaaa_sweep.Slope_Bu.sel(L=0).values)
-lin_coeff_dissip_smooth, piece_const_dissip_smooth, const_val_dissip_smooth, r2_lin_dissip_smooth, r2_piece_dissip_smooth, r2_const_dissip_smooth = fit_dissipation_curves(aaaa_sweep["ℰₖ"].sel(L=0.8).values, aaaa_sweep.Slope_Bu.sel(L=0.8).values)
+lin_coeff_dissip_rough, piece_coeff_dissip_rough, piece_const_dissip_rough, const_val_dissip_rough, r2_lin_dissip_rough, r2_piece_dissip_rough, r2_const_dissip_rough = fit_dissipation_curves(aaaa_sweep["ℰₖ"].sel(L=0).values, aaaa_sweep.Slope_Bu.sel(L=0).values, flexible_piecewise=True)
+lin_coeff_dissip_smooth, piece_coeff_dissip_smooth, piece_const_dissip_smooth, const_val_dissip_smooth, r2_lin_dissip_smooth, r2_piece_dissip_smooth, r2_const_dissip_smooth = fit_dissipation_curves(aaaa_sweep["ℰₖ"].sel(L=0.8).values, aaaa_sweep.Slope_Bu.sel(L=0.8).values)
+
+print()
+print("Dissipation (rough):")
+print("  Linear coeff (rough):", lin_coeff_dissip_rough)
+print("  Piecewise coeff (rough):", piece_coeff_dissip_rough)
+print("  Piecewise const (rough):", piece_const_dissip_rough)
+print("  R2 linear (rough):", r2_lin_dissip_rough)
+print("  R2 piecewise (rough):", r2_piece_dissip_rough)
+print()
+print("Dissipation (smooth):")
+print("  Linear coeff (smooth):", lin_coeff_dissip_smooth)
+print("  Piecewise coeff (smooth):", piece_coeff_dissip_smooth)
+print("  Piecewise const (smooth):", piece_const_dissip_smooth)
+print("  R2 linear (smooth):", r2_lin_dissip_smooth)
+print("  R2 piecewise (smooth):", r2_piece_dissip_smooth)
+
+aaaa_high_Sb = aaaa_sweep.where(aaaa_sweep.Slope_Bu>1)
+lin_coeff_dissip_high_Sb, piece_coeff_dissip_high_Sb, piece_const_dissip_high_Sb, const_val_dissip_high_Sb, r2_lin_dissip_high_Sb, r2_piece_dissip_high_Sb, r2_const_dissip_high_Sb = fit_dissipation_curves(aaaa_high_Sb["ℰₖ"].values, aaaa_high_Sb.Slope_Bu.values, flexible_piecewise=False)
+
+print()
+print("Dissipation (high Sb):")
+print("  Linear coeff (high Sb):", lin_coeff_dissip_high_Sb)
+print("  R2 linear (high Sb):", r2_lin_dissip_high_Sb)
+
 
 # Use fitted coefficients for reference lines
-dissip_lin_ref_smooth = lin_coeff_dissip_smooth * Sb_ref
-dissip_piece_ref_rough = np.maximum(dissip_lin_ref_smooth, piece_const_dissip_rough)
-dissip_const_ref_rough = const_val_dissip_rough * np.ones_like(Sb_ref)
+
+dissip_lin_ref_smooth = 2e-2 * Sb_ref
+min_coeff_dissip_rough = 2e-2
+dissip_piece_ref_rough = np.maximum(dissip_lin_ref_smooth, min_coeff_dissip_rough)
 
 # Fit curves to mixing data
 lin_coeff_val, quadratic_coeff_val, r2_linear, r2_quadratic = fit_mixing_curves(aaaa_sweep["ℰₚ"].values, aaaa_sweep.Slope_Bu.values)
@@ -111,10 +136,8 @@ mixing_quadratic_ref = quadratic_coeff_val * Sb_ref**2
 
 ax = axes["a"]
 ax.set_ylabel(f"Normalized dissipation, {ax.get_ylabel()}", fontsize=13)
-ax.plot(Sb_ref, dissip_lin_ref_smooth, ls="--", lw=5, color="blue", alpha=0.3,
-        label=f"$\\sim S_b$ ($R^2 = {r2_lin_dissip_smooth:.3f}$)")
-ax.plot(Sb_ref, dissip_piece_ref_rough, ls="--", lw=5, color="red", alpha=0.3,
-        label=f"$\\max(\\sim S_b, {piece_const_dissip_rough:.2e})$ ($R^2 = {r2_piece_dissip_rough:.3f}$)")
+ax.plot(Sb_ref, dissip_lin_ref_smooth, ls="--", lw=5, color="blue", alpha=0.3, label=r"$\sim S_b$")
+ax.plot(Sb_ref, dissip_piece_ref_rough, ls="--", lw=5, color="red", alpha=0.3, label=r"$\max(\sim S_b, 2 \times 10^{-2})$")
 
 ax = axes["b"]
 ax.set_ylabel(f"Normalized buoyancy mixing, {ax.get_ylabel()}", fontsize=13)
@@ -160,7 +183,7 @@ for simname_base in simname_bases:
 
     # Load datasets
     aaaa_south = merge_datasets(runs, base_name=f"aaaa.{simname_base}", verbose=True, add_min_spacings=False,
-                          combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
+                                combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
     aaaa_south = aaaa_south.reindex(Ro_b = list(reversed(aaaa_south.Ro_b)))
 
     L0 = aaaa_south.Δz_min * aaaa_south.aspect / aaaa_south.FWHM
