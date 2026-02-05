@@ -11,7 +11,7 @@ simdata_path = "../simulations/data/"
 simname_base = "balanus"
 
 Rossby_numbers = cycler(Ro_b = [0.05, 0.1, 0.2, 0.5])
-Froude_numbers = cycler(Fr_b = [0.05, 0.08, 0.3, 1, 2])
+Froude_numbers = cycler(Fr_b = [0.04, 0.08, 0.3, 1, 2])
 L              = cycler(L = [0, 0.8])
 
 resolutions    = cycler(dz = [1])
