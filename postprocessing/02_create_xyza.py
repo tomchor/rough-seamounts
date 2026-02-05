@@ -23,7 +23,7 @@ if not basename(__file__).startswith("00_postproc_"):
     simname_base = "balanus"
 
     Rossby_numbers = cycler(Ro_b = [0.1])
-    Froude_numbers = cycler(Fr_b = [0.8])
+    Froude_numbers = cycler(Fr_b = [1])
     L              = cycler(L = [0])
 
     resolutions    = cycler(dz = [2])
