@@ -99,7 +99,7 @@ for j, config in enumerate(runs):
 
     #+++ Time-average xyzi
     # Drop some variables whose time-average is not needed
-    xyzi = xyzi.drop_vars(["ω_x", "κ", "Ri", "p", "peripheral_nodes_ccf", "peripheral_nodes_cfc", "peripheral_nodes_fcc"])
+    xyzi = xyzi.drop_vars(["ω_x", "Ri", "p", "peripheral_nodes_ccf", "peripheral_nodes_cfc", "peripheral_nodes_fcc"])
 
     print("Computing temporal average...")
     xyza = temporal_average(xyzi)
