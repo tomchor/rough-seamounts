@@ -67,12 +67,12 @@ print("Creating plots...")
 
 # Define common plotting parameters
 vmin, vmax = 1e-5, 1e-3  # Adjust based on your data range
-cmap = 'inferno'
+cmap = "inferno"
 
 # Plot titles and labels
 titles = [
-    f'Rough bathymetry (L = {L_rough})',
-    f'Smooth bathymetry (L = {L_smooth})'
+    f"Rough bathymetry (L = {L_rough})",
+    f"Smooth bathymetry (L = {L_smooth})"
 ]
 
 dataset_keys = [ tup[1] for tup in dataset_list ]
@@ -84,7 +84,7 @@ for idx, (ax, title, key) in enumerate(zip(axes, titles, dataset_keys)):
     z_slice = dataset.H / 3
     kappa_slice = dataset["κ̄"].sel(z_aac=z_slice, method="nearest")
 
-    # Use xarray's plot interface
+    # Use xarray"s plot interface
     im = kappa_slice.plot(
         ax=ax,
         cmap=cmap,
@@ -94,31 +94,31 @@ for idx, (ax, title, key) in enumerate(zip(axes, titles, dataset_keys)):
     )
 
     # Styling
-    ax.set_title(title, fontsize=12, fontweight='bold')
-    ax.set_xlabel('x (m)' if idx == len(axes) - 1 else '', fontsize=11)
-    ax.set_ylabel('y (m)', fontsize=11)
-    ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.5)
+    ax.set_title(title, fontsize=12, fontweight="bold")
+    ax.set_xlabel("x (m)" if idx == len(axes) - 1 else "", fontsize=11)
+    ax.set_ylabel("y (m)", fontsize=11)
+    ax.grid(True, alpha=0.3, linestyle="--", linewidth=0.5)
 
     # Add panel label
-    # letterize(ax, idx, x=-0.08, y=1.02, fontsize=14, fontweight='bold')
+    # letterize(ax, idx, x=-0.08, y=1.02, fontsize=14, fontweight="bold")
 
 # Add shared colorbar
-cbar = fig.colorbar(im, ax=axes, orientation='vertical',
+cbar = fig.colorbar(im, ax=axes, orientation="vertical",
                     pad=0.02, aspect=30, shrink=0.9)
-cbar.set_label(r'$\bar{\kappa}$ (m$^2$ s$^{-1}$)', fontsize=11, rotation=270, labelpad=20)
+cbar.set_label(r"$\bar{\kappa}$ (m$^2$ s$^{-1}$)", fontsize=11, rotation=270, labelpad=20)
 cbar.ax.tick_params(labelsize=10)
 
 # Overall title
-fig.suptitle(r'Eddy Diffusivity ($\bar{\kappa}$) at $z = H/3$',
-             fontsize=14, fontweight='bold', y=0.98)
+fig.suptitle(r"Eddy Diffusivity ($\bar{\kappa}$) at $z = H/3$",
+             fontsize=14, fontweight="bold", y=0.98)
 
 plt.tight_layout()
 #---
 
 #+++ Save figure
-output_filename = f'figS5_kappa_viscosity_comparison.pdf'
+output_filename = f"figS5_kappa_viscosity_comparison.pdf"
 print(f"Saving figure to {output_filename}...")
-fig.savefig(output_filename, dpi=300, bbox_inches='tight')
+fig.savefig(output_filename, dpi=300, bbox_inches="tight")
 print(f"Figure saved successfully!")
 #---
 
