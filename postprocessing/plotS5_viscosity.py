@@ -21,7 +21,7 @@ Lx_flat = 9000
 Ly_flat = 4000
 
 L_rough = 0
-L_smooth = 0.05
+L_smooth = 0.1
 buffer = 5
 resolution = 1
 t_slice = np.inf
@@ -32,7 +32,7 @@ print("Loading datasets...")
 averaged_options = dict(unique_times=False, load=False, get_grid=False,
                         open_dataset_kwargs=dict(chunks="auto"))
 
-dataset_list = [(L_rough, "reg_L0"), (L_smooth, "reg_L005")]
+dataset_list = [(L_rough, "reg_L0"), (L_smooth, "reg_L01")]
 datasets = {}
 
 # Load regular balanus datasets
@@ -66,7 +66,7 @@ axes = axes.flatten()
 print("Creating plots...")
 
 # Define common plotting parameters
-vmin, vmax = 1e-10, 1e-5  # Adjust based on your data range
+vmin, vmax = 1e-5, 1e-3  # Adjust based on your data range
 cmap = 'inferno'
 
 # Plot titles and labels
@@ -75,7 +75,7 @@ titles = [
     f'Smooth bathymetry (L = {L_smooth})'
 ]
 
-dataset_keys = ['reg_L0', 'reg_L005']
+dataset_keys = [ tup[1] for tup in dataset_list ]
 
 for idx, (ax, title, key) in enumerate(zip(axes, titles, dataset_keys)):
     dataset = datasets[key]
