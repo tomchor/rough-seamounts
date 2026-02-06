@@ -33,7 +33,7 @@ averaged_options = dict(unique_times=False, load=False, get_grid=False,
                         open_dataset_kwargs=dict(chunks="auto"))
 
 # Variables to load (only epsilon_k)
-variables_xz = ["∫εₖdy"]
+variables_xz = ["∫ε̄ₖdy"]
 variables_xy = ["∫ε̄ₖdz"]
 
 datasets = {}
@@ -43,7 +43,7 @@ for L_value, L_key in [(L_rough, "reg_L0"), (L_smooth, "reg_L08")]:
     simulation_name = f"{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_value}_dz{resolution}"
 
     xyza_dataset = open_simulation(f"{postproc_path}xyza.{simulation_name}.nc", **averaged_options)
-    xyza_dataset = condense(xyza_dataset, ["∫⁵εₖdy", "∫¹⁰εₖdy"], "∫εₖdy", dimname="buffer", indices=[5, 10])
+    xyza_dataset = condense(xyza_dataset, ["∫⁵ε̄ₖdy", "∫¹⁰ε̄ₖdy"], "∫ε̄ₖdy", dimname="buffer", indices=[5, 10])
 
     aaad_dataset = open_simulation(f"{postproc_path}aaad.{simulation_name}.nc", **averaged_options)
 
@@ -78,7 +78,7 @@ for L_value, L_key in [(L_rough, "flat_L0"), (L_smooth, "flat_L08")]:
     simulation_name = f"{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_value}_FWHM{FWHM_flat}_Lx{Lx_flat}_Ly{Ly_flat}_dz{resolution}"
 
     xyza_dataset = open_simulation(f"{postproc_path}xyza.{simulation_name}.nc", **averaged_options)
-    xyza_dataset = condense(xyza_dataset, ["∫⁵εₖdy", "∫¹⁰εₖdy"], "∫εₖdy", dimname="buffer", indices=[5, 10])
+    xyza_dataset = condense(xyza_dataset, ["∫⁵ε̄ₖdy", "∫¹⁰ε̄ₖdy"], "∫ε̄ₖdy", dimname="buffer", indices=[5, 10])
 
     aaad_dataset = open_simulation(f"{postproc_path}aaad.{simulation_name}.nc", **averaged_options)
 

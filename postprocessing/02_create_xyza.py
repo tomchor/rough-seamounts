@@ -23,7 +23,7 @@ if not basename(__file__).startswith("00_postproc_"):
     simname_base = "balanus"
 
     Rossby_numbers = cycler(Ro_b = [0.1])
-    Froude_numbers = cycler(Fr_b = [0.8])
+    Froude_numbers = cycler(Fr_b = [1])
     L              = cycler(L = [0])
 
     resolutions    = cycler(dz = [2])
@@ -99,7 +99,7 @@ for j, config in enumerate(runs):
 
     #+++ Time-average xyzi
     # Drop some variables whose time-average is not needed
-    xyzi = xyzi.drop_vars(["ω_x", "κ", "Ri", "p", "peripheral_nodes_ccf", "peripheral_nodes_cfc", "peripheral_nodes_fcc"])
+    xyzi = xyzi.drop_vars(["ω_x", "Ri", "p", "peripheral_nodes_ccf", "peripheral_nodes_cfc", "peripheral_nodes_fcc"])
 
     print("Computing temporal average...")
     xyza = temporal_average(xyzi)

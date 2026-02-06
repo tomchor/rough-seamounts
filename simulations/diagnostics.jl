@@ -31,7 +31,7 @@ function write_to_ds(dsname, varname, data; coords=("x_caa", "y_aca", "z_aac"), 
 end
 #---
 
-#+++ Define Fields
+#+++ Define ScratchedFields
 using Oceananigans.AbstractOperations: AbstractOperation
 import Oceananigans.Fields: Field
 
