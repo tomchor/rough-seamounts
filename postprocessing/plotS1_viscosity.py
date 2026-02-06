@@ -86,10 +86,10 @@ for idx, (ax, title, key) in enumerate(zip(axes, titles, dataset_keys)):
 
     # Take a horizontal slice at z = H/3
     zslice = dataset.H / 3
-    kappa_slice = dataset["κ̄"].sel(z_aac=zslice, method="nearest")
+    viscosity_slice = dataset["κ̄"].sel(z_aac=zslice, method="nearest")
 
     # Use xarray"s plot interface
-    im = kappa_slice.plot(
+    im = viscosity_slice.plot(
         ax=ax,
         cmap=cmap,
         norm=LogNorm(vmin=vmin, vmax=vmax, clip=True),
@@ -113,14 +113,14 @@ for idx, (ax, title, key) in enumerate(zip(axes, titles, dataset_keys)):
 
 # Add shared colorbar
 cbar = fig.colorbar(im, ax=axes, orientation="vertical", pad=0.02, aspect=30, shrink=0.9)
-cbar.set_label(r"$\bar{\kappa}$ (m$^2$ s$^{-1}$)", fontsize=11, rotation=270, labelpad=20)
+cbar.set_label(r"Eddy viscosity ($\bar{\nu}_e$) (m$^2$ s$^{-1}$)", fontsize=11, rotation=270, labelpad=20)
 cbar.ax.tick_params(labelsize=10)
 
 letterize(axes, x=0.05, y=0.9, fontsize=9)
 #---
 
 #+++ Save figure
-output_filename = f"../figures/{simname_base}_kappa_viscosity_comparison_buffer{buffer}m_dz{resolution}.pdf"
+output_filename = f"../figures/{simname_base}_viscosity_comparison_buffer{buffer}m_dz{resolution}.pdf"
 print(f"Saving figure to {output_filename}...")
 fig.savefig(output_filename, dpi=300, bbox_inches="tight")
 print(f"Figure saved successfully!")
