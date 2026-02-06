@@ -74,8 +74,8 @@ bathy_cmap.set_under(alpha=0)  # Make values below vmin transparent
 
 # Plot titles and labels
 titles = [
-    f"Rough bathymetry (L = {L_rough})",
-    f"Smooth bathymetry (L = {L_smooth})"
+    f"Rough bathymetry ($L/W$ = {L_rough})",
+    f"Smooth bathymetry ($L/W$ = {L_smooth})"
 ]
 
 dataset_keys = [ tup[1] for tup in dataset_list ]
