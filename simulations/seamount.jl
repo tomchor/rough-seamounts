@@ -438,7 +438,7 @@ tock()
 #+++ Run simulations and plot video afterwards
 show_gpu_status()
 @info "Starting simulation"
-run!(simulation, pickup=write_ckpt, checkpoint_at_end=true)
+run!(simulation, pickup=write_ckpt)
 #---
 
 #+++ Plot video

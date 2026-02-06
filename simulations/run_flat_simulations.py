@@ -2,7 +2,6 @@ from cycler import cycler
 from simulation_runner import run_simulation_batch
 
 #+++ Define run options
-# Define physical parameters
 Rossby_numbers = cycler(Ro_b = [0.1])
 Froude_numbers = cycler(Fr_b = [1])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
@@ -10,7 +9,6 @@ FWHM           = cycler(FWHM = [1000])
 Lx             = cycler(Lx = [9000])
 Ly             = cycler(Ly = [4000])
 
-# Define numerical parameters
 resolutions    = cycler(dz = [2])
 
 paramspace = Rossby_numbers * Froude_numbers * L * FWHM * Lx * Ly
