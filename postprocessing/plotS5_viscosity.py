@@ -1,7 +1,7 @@
 import numpy as np
 import xarray as xr
 from matplotlib import pyplot as plt
-from matplotlib.colors import LogNorm
+from matplotlib.colors import LogNorm, ListedColormap
 from matplotlib.gridspec import GridSpec
 from src.aux00_utils import open_simulation, condense
 from src.aux02_plotting import letterize
@@ -21,7 +21,7 @@ Lx_flat = 9000
 Ly_flat = 4000
 
 L_rough = 0
-L_smooth = 0.1
+L_smooth = 0.2
 buffer = 5
 resolution = 1
 t_slice = np.inf
@@ -52,9 +52,9 @@ print("Data loaded!")
 #---
 
 #+++ Create figure and subplots
-fig, axes = plt.subplots(ncols=1, nrows=2, figsize=(10, 7),
+fig, axes = plt.subplots(ncols=1, nrows=2, figsize=(8, 7),
                          gridspec_kw=dict(hspace=0.25, wspace=0.05),
-                         sharex=True, sharey=True)
+                         sharex=True, sharey=True, constrained_layout=True)
 
 # Ensure axes is a flat array
 if not isinstance(axes, np.ndarray):
@@ -69,6 +69,10 @@ print("Creating plots...")
 vmin, vmax = 1e-5, 1e-3  # Adjust based on your data range
 cmap = "inferno"
 
+# Create bathymetry colormap with transparent zero
+bathy_cmap = plt.cm.Greys.copy()
+bathy_cmap.set_under(alpha=0)  # Make values below vmin transparent
+
 # Plot titles and labels
 titles = [
     f"Rough bathymetry (L = {L_rough})",
@@ -81,8 +85,8 @@ for idx, (ax, title, key) in enumerate(zip(axes, titles, dataset_keys)):
     dataset = datasets[key]
 
     # Take a horizontal slice at z = H/3
-    z_slice = dataset.H / 3
-    kappa_slice = dataset["κ̄"].sel(z_aac=z_slice, method="nearest")
+    zslice = dataset.H / 3
+    kappa_slice = dataset["κ̄"].sel(z_aac=zslice, method="nearest")
 
     # Use xarray"s plot interface
     im = kappa_slice.plot(
@@ -93,30 +97,30 @@ for idx, (ax, title, key) in enumerate(zip(axes, titles, dataset_keys)):
         rasterized=True
     )
 
+    # Add bathymetry mask
+    if "peripheral_nodes_ccc" in dataset:
+        bathy_mask = dataset.peripheral_nodes_ccc.sel(z_aac=zslice, method="nearest")
+        bathy_mask.plot.imshow(ax=ax, cmap=bathy_cmap, vmin=0.1, vmax=3, origin="lower",
+                               zorder=2, add_colorbar=False)
+
     # Styling
     ax.set_title(title, fontsize=12, fontweight="bold")
     ax.set_xlabel("x (m)" if idx == len(axes) - 1 else "", fontsize=11)
     ax.set_ylabel("y (m)", fontsize=11)
+    ax.set_aspect("equal")
     ax.grid(True, alpha=0.3, linestyle="--", linewidth=0.5)
 
-    # Add panel label
-    # letterize(ax, idx, x=-0.08, y=1.02, fontsize=14, fontweight="bold")
 
 # Add shared colorbar
-cbar = fig.colorbar(im, ax=axes, orientation="vertical",
-                    pad=0.02, aspect=30, shrink=0.9)
+cbar = fig.colorbar(im, ax=axes, orientation="vertical", pad=0.02, aspect=30, shrink=0.9)
 cbar.set_label(r"$\bar{\kappa}$ (m$^2$ s$^{-1}$)", fontsize=11, rotation=270, labelpad=20)
 cbar.ax.tick_params(labelsize=10)
 
-# Overall title
-fig.suptitle(r"Eddy Diffusivity ($\bar{\kappa}$) at $z = H/3$",
-             fontsize=14, fontweight="bold", y=0.98)
-
-plt.tight_layout()
+letterize(axes, x=0.05, y=0.9, fontsize=9)
 #---
 
 #+++ Save figure
-output_filename = f"figS5_kappa_viscosity_comparison.pdf"
+output_filename = f"../figures/{simname_base}_kappa_viscosity_comparison_buffer{buffer}m_dz{resolution}.pdf"
 print(f"Saving figure to {output_filename}...")
 fig.savefig(output_filename, dpi=300, bbox_inches="tight")
 print(f"Figure saved successfully!")
