@@ -53,7 +53,6 @@ print("Data loaded!")
 
 #+++ Create figure and subplots
 fig, axes = plt.subplots(ncols=1, nrows=2, figsize=(8, 7),
-                         gridspec_kw=dict(hspace=0.25, wspace=0.05),
                          sharex=True, sharey=True, constrained_layout=True)
 
 # Ensure axes is a flat array
@@ -112,7 +111,7 @@ for idx, (ax, title, key) in enumerate(zip(axes, titles, dataset_keys)):
 
 
 # Add shared colorbar
-cbar = fig.colorbar(im, ax=axes, orientation="vertical", pad=0.02, aspect=30, shrink=0.9)
+cbar = fig.colorbar(im, ax=axes, orientation="vertical", pad=0.02, aspect=30, shrink=0.7)
 cbar.set_label(r"Eddy viscosity ($\bar{\nu}_e$) (m$^2$ s$^{-1}$)", fontsize=11, rotation=270, labelpad=20)
 cbar.ax.tick_params(labelsize=10)
 
