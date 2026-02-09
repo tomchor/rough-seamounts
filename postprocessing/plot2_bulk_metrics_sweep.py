@@ -26,8 +26,8 @@ buffer = 5
 
 #+++ Load datasets
 aaaa_sweep = merge_datasets(runs, base_name=f"aaaa.{simname_base}",
-                      dirpath="data", verbose=True, add_min_spacings=False,
-                      combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
+                            dirpath="data", verbose=True, add_min_spacings=False,
+                            combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
 aaaa_sweep = aaaa_sweep.reindex(Ro_b = list(reversed(aaaa_sweep.Ro_b)))
 #---
 
