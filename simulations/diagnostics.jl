@@ -7,26 +7,11 @@ using Oceanostics: KineticEnergyDissipationRate, KineticEnergyForcing,
                    ErtelPotentialVorticity, DirectionalErtelPotentialVorticity, RossbyNumber, RichardsonNumber,
                    TracerVarianceDissipationRate
 
-viscosity(model)           = viscosity(model.closure, model.closure_fields)
-diffusivity(model, tracer) = diffusivity(model.closure, model.closure_fields, tracer)
-
-
 #+++ Write to NCDataset
 import NCDatasets as NCD
 function write_to_ds(dsname, varname, data; coords=("x_caa", "y_aca", "z_aac"), dtype=eltype(grid))
     ds = NCD.NCDataset(dsname, "a")
-    if varname ∉ keys(ds)
-        newvar = NCD.defVar(ds, varname, dtype, coords)
-        if length(size(data)) == 3
-            newvar[:,:,:] = Array(data)
-        elseif length(size(data)) == 2
-            newvar[:,:] = Array(data)
-        elseif length(size(data)) == 1
-            newvar[:] = Array(data)
-        else
-            newvar = data
-        end
-    end
+    defVar(ds, varname, data)
     NCD.close(ds)
 end
 #---
@@ -180,10 +165,10 @@ function construct_outputs(simulation;
                                                                            verbose = debug,
                                                                            kwargs...
                                                                            )
-        write_to_ds(ow.filepath, "damping_rate", interior(damping_rate), coords = ("x_caa", "y_aca", "z_aac"))
-        write_to_ds(ow.filepath, "altitude", interior(Field(altitude)), coords = ("x_caa", "y_aca", "z_aac"))
-        write_to_ds(ow.filepath, "distance_condition_5meters",  interior(dcf5),  coords = ("x_caa", "y_aca", "z_aac"))
-        write_to_ds(ow.filepath, "distance_condition_10meters", interior(dcf10), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "damping_rate", damping_rate)
+        write_to_ds(ow.filepath, "altitude", altitude)
+        write_to_ds(ow.filepath, "distance_condition_5meters",  dcf5)
+        write_to_ds(ow.filepath, "distance_condition_10meters", dcf10)
     end
     #---
 
@@ -243,10 +228,10 @@ function construct_outputs(simulation;
                                                                            verbose = true,
                                                                            kwargs...
                                                                            )
-        write_to_ds(ow.filepath, "damping_rate", interior(damping_rate), coords = ("x_caa", "y_aca", "z_aac"))
-        write_to_ds(ow.filepath, "altitude", interior(Field(altitude)), coords = ("x_caa", "y_aca", "z_aac"))
-        write_to_ds(ow.filepath, "distance_condition_5meters",  interior(dcf5),  coords = ("x_caa", "y_aca", "z_aac"))
-        write_to_ds(ow.filepath, "distance_condition_10meters", interior(dcf10), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "damping_rate", damping_rate)
+        write_to_ds(ow.filepath, "altitude", altitude)
+        write_to_ds(ow.filepath, "distance_condition_5meters",  dcf5)
+        write_to_ds(ow.filepath, "distance_condition_10meters", dcf10)
     end
     #---
 
