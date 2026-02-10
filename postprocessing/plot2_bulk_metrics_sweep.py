@@ -11,7 +11,7 @@ from src.aux02_plotting import letterize
 simname_base = "balanus"
 
 Rossby_numbers = cycler(Ro_b = [0.05, 0.1, 0.2, 0.5])
-Froude_numbers = cycler(Fr_b = [0.05, 0.08, 0.3, 1, 2])
+Froude_numbers = cycler(Fr_b = [0.04, 0.08, 0.3, 1, 2])
 L              = cycler(L = [0, 0.8])
 
 resolutions    = cycler(dz = [1])
@@ -26,8 +26,8 @@ buffer = 5
 
 #+++ Load datasets
 aaaa_sweep = merge_datasets(runs, base_name=f"aaaa.{simname_base}",
-                      dirpath="data", verbose=True, add_min_spacings=False,
-                      combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
+                            dirpath="data", verbose=True, add_min_spacings=False,
+                            combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
 aaaa_sweep = aaaa_sweep.reindex(Ro_b = list(reversed(aaaa_sweep.Ro_b)))
 #---
 
