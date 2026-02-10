@@ -51,7 +51,7 @@ end
 if !((@isdefined params) && (@isdefined simulation))
     # Read metadata from NetCDF file
     NCDatasets.NCDataset(fpath_xyii) do ds
-        params = (; (Symbol(k) => ds.attrib[k] for k in keys(ds.attrib))...)
+        global params = (; (Symbol(k) => ds.attrib[k] for k in keys(ds.attrib))...)
     end
 end
 #---
