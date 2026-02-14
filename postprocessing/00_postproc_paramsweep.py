@@ -14,7 +14,7 @@ Rossby_numbers = cycler(Ro_b = [0.05, 0.1, 0.2, 0.5])
 Froude_numbers = cycler(Fr_b = [0.04, 0.08, 0.3, 1, 2])
 L              = cycler(L = [0, 0.8])
 
-resolutions    = cycler(dz = [1])
+resolutions    = cycler(dz = [2, 1])
 T_adv_spinups  = cycler(T_adv_spinup = [12])
 
 paramspace = Rossby_numbers * Froude_numbers * L

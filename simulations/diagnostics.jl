@@ -11,7 +11,10 @@ using Oceanostics: KineticEnergyDissipationRate, KineticEnergyForcing,
 import NCDatasets as NCD
 function write_to_ds(dsname, varname, data; coords=("x_caa", "y_aca", "z_aac"), dtype=eltype(grid))
     ds = NCD.NCDataset(dsname, "a")
-    defVar(ds, varname, data)
+    # Only write if variable doesn't already exist
+    if !haskey(ds, varname)
+        defVar(ds, varname, data)
+    end
     NCD.close(ds)
 end
 #---
