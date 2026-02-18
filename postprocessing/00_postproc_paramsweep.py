@@ -1,5 +1,5 @@
 import sys
-sys.path.append("/glade/u/home/tomasc/repos/pynanigans")
+sys.path.append("/glade/u/home/tomasc/repos/pynanigans") # Add pynanigans to PYTHONPATH
 from cycler import cycler
 from src.aux00_utils import check_simulation_completion, aggregate_parameters
 from colorama import Fore, Back, Style
