@@ -1,14 +1,14 @@
 #!/bin/bash -l
-#PBS -A UMCP0028
+#PBS -A YOUR_PROJECT_ID
 #PBS -N postproc_all
 #PBS -o logs/postproc_all.log
 #PBS -e logs/postproc_all.log
 #PBS -l walltime=24:00:00
-#PBS -q casper
+#PBS -q YOUR_QUEUE
 #PBS -l select=1:ncpus=18:mem=1400GB:ngpus=0
 ## preempt=0.2, economy=0.7, regular=1, premium=1.5
 #PBS -l job_priority=premium
-#PBS -M tchor@umd.edu
+#PBS -M YOUR_EMAIL
 #PBS -m abe
 #PBS -r n
 
@@ -19,6 +19,6 @@ module li
 
 #/glade/u/apps/ch/opt/usr/bin/dumpenv # Dumps environment (for debugging with CISL support)
 
-time ~/miniconda3/envs/py313/bin/python 00_postproc_all.py 2>&1 | tee logs/postproc_all.out
+time python 00_postproc_all.py 2>&1 | tee logs/postproc_all.out
 
 qstat -f $PBS_JOBID >> logs/postproc_all.out

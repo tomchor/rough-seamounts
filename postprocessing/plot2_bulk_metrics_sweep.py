@@ -1,5 +1,5 @@
 import sys
-sys.path.append("/glade/u/home/tomasc/repos/pynanigans")
+sys.path.append("/glade/u/home/tomasc/repos/pynanigans") # Add pynanigans to PYTHONPATH
 import pynanigans as pn
 from cycler import cycler
 from matplotlib import pyplot as plt
