@@ -86,6 +86,9 @@ for idx, (ax, title, key) in enumerate(zip(axes, titles, dataset_keys)):
     # Take a horizontal slice at z = H/3
     zslice = dataset.H / 3
     viscosity_slice = dataset["κ̄"].sel(z_aac=zslice, method="nearest")
+    # u_rms = np.sqrt(dataset["⟨uⱼuᵢ⟩ₜ"].sel(i=1, j=1, z_aac=zslice, method="nearest"))
+    # v_rms = np.sqrt(dataset["⟨uⱼuᵢ⟩ₜ"].sel(i=2, j=2, z_aac=zslice, method="nearest"))
+    # U_rms = np.sqrt(u_rms**2 + v_rms**2)
 
     # Use xarray"s plot interface
     im = viscosity_slice.plot(
