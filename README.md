@@ -80,6 +80,7 @@ Code for the paper "Turbulent mixing and dissipation around rough seamounts", su
 
 ## 3. Plotting the figures
 
+- **You need to install [pynanigans](https://github.com/tomchor/pynanigans)** (and ensure it is on your `PYTHONPATH` or add `sys.path.append("/path/to/pynanigans")` in the plot scripts) for the figure scripts to run.
 - All figure scripts are in `postprocessing/` and assume post-processing has been run so that `postprocessing/data/` contains the derived datasets.
 - Run from `postprocessing/`, e.g.:
   ```bash
