@@ -102,40 +102,43 @@ u_xyiiₙ = @lift u_xyii[$n]
 hidexdecorations!(ax_u_xyii)
 hm_u_xyii = heatmap!(ax_u_xyii, u_xyiiₙ; colorrange=color_ranges[:u].range, colormap=color_ranges[:u].colormap)
 
-# ax_u_xizi = Axis(fig[2, 2]; ylabel="z (m)", width=panel_width, height=panel_height)
-# u_xizi = FieldTimeSeries(fpath_xizi, "u", architecture=CPU())
-# u_xiziₙ = @lift u_xizi[$n]
-# hidexdecorations!(ax_u_xizi)
-# hm_u_xizi = heatmap!(ax_u_xizi, u_xiziₙ; colorrange=color_ranges[:u].range, colormap=color_ranges[:u].colormap, interpolate=false)
+ax_u_xizi = Axis(fig[2, 2]; ylabel="z (m)", width=panel_width, height=panel_height)
+u_xizi = FieldTimeSeries(fpath_xizi, "u", architecture=CPU())
+u_xiziₙ = @lift u_xizi[$n]
+hidexdecorations!(ax_u_xizi)
+hm_u_xizi = heatmap!(ax_u_xizi, u_xiziₙ; colorrange=color_ranges[:u].range, colormap=color_ranges[:u].colormap, interpolate=false)
 
 Colorbar(fig[2, 3], hm_u_xyii; label="u", vertical=true, width=layout_params.cbar_height, height=panel_height, ticklabelsize=12)
-pause
 #---
 
 #+++ Row 2
-# @info "Creating panel: PV"
-# ax_PV_xyii = Axis(fig[3, 1]; ylabel="y (m)", width=panel_width, height=panel_height)
-# PV_xyiiₙ = @lift timeseries_xyii[:PV][$n]
-# hidexdecorations!(ax_PV_xyii)
-# hm_PV_xyii = heatmap!(ax_PV_xyii, PV_xyiiₙ; colorrange=color_ranges[:PV].range, colormap=color_ranges[:PV].colormap, interpolate=false)
+@info "Creating panel: PV"
+ax_PV_xyii = Axis(fig[3, 1]; ylabel="y (m)", width=panel_width, height=panel_height)
+PV_xyii = FieldTimeSeries(fpath_xyii, "PV", architecture=CPU())
+PV_xyiiₙ = @lift PV_xyii[$n]
+hidexdecorations!(ax_PV_xyii)
+hm_PV_xyii = heatmap!(ax_PV_xyii, PV_xyiiₙ; colorrange=color_ranges[:PV].range, colormap=color_ranges[:PV].colormap, interpolate=false)
 
-# ax_PV_xizi = Axis(fig[3, 2]; ylabel="z (m)", width=panel_width, height=panel_height)
-# PV_xiziₙ = @lift timeseries_xizi[:PV][$n]
-# hidexdecorations!(ax_PV_xizi)
-# hm_PV_xizi = heatmap!(ax_PV_xizi, PV_xiziₙ; colorrange=color_ranges[:PV].range, colormap=color_ranges[:PV].colormap, interpolate=false)
+ax_PV_xizi = Axis(fig[3, 2]; ylabel="z (m)", width=panel_width, height=panel_height)
+PV_xizi = FieldTimeSeries(fpath_xizi, "PV", architecture=CPU())
+PV_xiziₙ = @lift PV_xizi[$n]
+hidexdecorations!(ax_PV_xizi)
+hm_PV_xizi = heatmap!(ax_PV_xizi, PV_xiziₙ; colorrange=color_ranges[:PV].range, colormap=color_ranges[:PV].colormap, interpolate=false)
 
-# Colorbar(fig[3, 3], hm_PV_xyii; label="PV", vertical=true, width=layout_params.cbar_height, height=panel_height, ticklabelsize=12)
+Colorbar(fig[3, 3], hm_PV_xyii; label="PV", vertical=true, width=layout_params.cbar_height, height=panel_height, ticklabelsize=12)
 #---
 
 #+++ Row 3
 @info "Creating panel: εₖ"
 ax_εₖ_xyii = Axis(fig[4, 1]; ylabel="y (m)", width=panel_width, height=panel_height)
-εₖ_xyiiₙ = @lift timeseries_xyii[:εₖ][$n]
+εₖ_xyii = FieldTimeSeries(fpath_xyii, "εₖ", architecture=CPU())
+εₖ_xyiiₙ = @lift εₖ_xyii[$n]
 hidexdecorations!(ax_εₖ_xyii)
 hm_εₖ_xyii = heatmap!(ax_εₖ_xyii, εₖ_xyiiₙ; colorrange=color_ranges[:εₖ].range, colormap=color_ranges[:εₖ].colormap, interpolate=false)
 
 ax_εₖ_xizi = Axis(fig[4, 2]; ylabel="z (m)", width=panel_width, height=panel_height)
-εₖ_xiziₙ = @lift timeseries_xizi[:εₖ][$n]
+εₖ_xizi = FieldTimeSeries(fpath_xizi, "εₖ", architecture=CPU())
+εₖ_xiziₙ = @lift εₖ_xizi[$n]
 hidexdecorations!(ax_εₖ_xizi)
 hm_εₖ_xizi = heatmap!(ax_εₖ_xizi, εₖ_xiziₙ; colorrange=color_ranges[:εₖ].range, colormap=color_ranges[:εₖ].colormap, interpolate=false)
 
@@ -145,13 +148,13 @@ Colorbar(fig[4, 3], hm_εₖ_xyii; label="εₖ", vertical=true, width=layout_pa
 #+++ Row 4
 @info "Creating panel: Ro"
 ax_Ro_xyii = Axis(fig[5, 1]; xlabel="x (m)", ylabel="y (m)", width=panel_width, height=panel_height)
-Ro_xyiiₙ = @lift timeseries_xyii[:Ro][$n]
-hidexdecorations!(ax_Ro_xyii)
+Ro_xyii = FieldTimeSeries(fpath_xyii, "Ro", architecture=CPU())
+Ro_xyiiₙ = @lift Ro_xyii[$n]
 hm_Ro_xyii = heatmap!(ax_Ro_xyii, Ro_xyiiₙ; colorrange=color_ranges[:Ro].range, colormap=color_ranges[:Ro].colormap, interpolate=false)
 
 ax_Ro_xizi = Axis(fig[5, 2]; xlabel="x (m)", ylabel="z (m)", width=panel_width, height=panel_height)
-Ro_xiziₙ = @lift timeseries_xizi[:Ro][$n]
-hidexdecorations!(ax_Ro_xizi)
+Ro_xizi = FieldTimeSeries(fpath_xizi, "Ro", architecture=CPU())
+Ro_xiziₙ = @lift Ro_xizi[$n]
 hm_Ro_xizi = heatmap!(ax_Ro_xizi, Ro_xiziₙ; colorrange=color_ranges[:Ro].range, colormap=color_ranges[:Ro].colormap, interpolate=false)
 
 Colorbar(fig[5, 3], hm_Ro_xyii; label="Ro", vertical=true, width=layout_params.cbar_height, height=panel_height, ticklabelsize=12)
@@ -161,7 +164,6 @@ Colorbar(fig[5, 3], hm_Ro_xyii; label="Ro", vertical=true, width=layout_params.c
 #+++ Adjust figure and record animation
 @info "Recording animation with $(length(frames)) frames"
 resize_to_layout!(fig)
-pause
 
 Mk.record(fig, "$(@__DIR__)/../anims/$(params.simname).mp4", frames,
           framerate=14, compression=30, px_per_unit=1) do frame
