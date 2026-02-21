@@ -16,43 +16,33 @@ end
 #---
 
 #+++ Load required packages
-import Rasters as ra
-import NCDatasets
-using Rasters: Raster, RasterStack
 using Printf: @sprintf
+using Oceananigans
 using Oceananigans.Units
 using Oceananigans: prettytime
-
-#+++ Helper function to remove singleton dimensions
-function squeeze(ds::Union{Raster, RasterStack})
-    flat_dimensions = NamedTuple((ra.name(dim), 1) for dim in ra.dims(ds) if length(ra.dims(ds, dim)) == 1)
-    return getindex(ds; flat_dimensions...)
-end
+import NCDatasets
+using LaTeXStrings  # For LaTeX formatting in labels
 #---
 
 #+++ Read datasets
-variables = (:u, :PV, :εₖ, :Ro)
-
 # Get main dataset paths
-fpath_xyii = (@isdefined simulation) ? simulation.output_writers[:nc_xyii].filepath : "data/xyii.seamount_Ro_b0.1_Fr_b1.0_L0.8_FWHM400_dz8.nc"
-fpath_xizi = (@isdefined simulation) ? simulation.output_writers[:nc_xizi].filepath : "data/xizi.seamount_Ro_b0.1_Fr_b1.0_L0.8_FWHM400_dz8.nc"
-
-@info "Reading xyii dataset: $fpath_xyii"
-ds_xyii = RasterStack(fpath_xyii, lazy=true, name=variables) |> squeeze
-
-@info "Reading xizi dataset: $fpath_xizi"
-ds_xizi = RasterStack(fpath_xizi, lazy=true, name=variables) |> squeeze
+simname_fallback = "balanus_Ro_b0.05_Fr_b0.3_L0.8_dz4_T_adv_spinup12"
+fpath_xyii = (@isdefined simulation) ? simulation.output_writers[:nc_xyii].filepath : "data/xyii.$simname_fallback.nc"
+fpath_xizi = (@isdefined simulation) ? simulation.output_writers[:nc_xizi].filepath : "data/xizi.$simname_fallback.nc"
 #---
 
 #+++ Get parameters
 if !((@isdefined params) && (@isdefined simulation))
-    md = ra.metadata(ds_xyii)
-    params = (; (Symbol(k) => v for (k, v) in md)...)
+    # Read metadata from NetCDF file
+    NCDatasets.NCDataset(fpath_xyii) do ds
+        global params = (; (Symbol(k) => ds.attrib[k] for k in keys(ds.attrib))...)
+    end
 end
 #---
 
 #+++ Setup animation parameters
-times = ra.dims(ds_xyii, :Ti)
+# Get times from the first FieldTimeSeries
+times = FieldTimeSeries(fpath_xyii, "u", architecture=CPU()).times
 n_times = length(times)
 max_frames = 200
 frame_step = max(1, floor(Int, n_times / max_frames))
@@ -86,8 +76,18 @@ layout_params = (
 fig = Figure(figure_padding = (10, 30, 10, 10))
 n = Observable(1)
 
-# Create title in two lines within one row
-title = @lift "α = $(@sprintf "%.2g" params.α), Frₕ = $(@sprintf "%.2g" params.Fr_b), Roₕ = $(@sprintf "%.2g" params.Ro_b), Sᴮᵘ = $(@sprintf "%.2g" params.Slope_Bu), Δz = $(@sprintf "%.2g" params.Δz_min) m;   Time = $(@sprintf "%s" prettytime(times[$n])) = $(@sprintf "%.3g" times[$n]/params.T_adv) adv periods = $(@sprintf "%.3g" times[$n]/params.T_inertial) Inertial periods"
+# Create title
+title = @lift begin
+    t_str = prettytime(times[$n])
+    t_adv = @sprintf "%.3g" times[$n]/params.T_adv
+    t_f = @sprintf "%.3g" times[$n]/params.T_inertial
+    Fr_str = @sprintf "%.2g" params.Fr_b
+    Ro_str = @sprintf "%.2g" params.Ro_b
+    Sbu_str = @sprintf "%.2g" params.Slope_Bu
+    dz_str = @sprintf "%.2g" params.Δz_min
+
+    L"Fr_b = %$Fr_str, \, Ro_b = %$Ro_str, \, S^{Bu} = %$Sbu_str, \, \Delta z = %$dz_str \, \mathrm{m}; \quad t = \text{%$t_str} = %$t_adv \, T_{adv} = %$t_f \, T_f"
+end
 
 # Create single title row with two lines
 fig[1, 1:3] = Label(fig, title, fontsize=18, tellwidth=false, height=layout_params.title_height)
@@ -99,134 +99,82 @@ rowgap!(fig.layout, layout_params.row_gap)
 colsize!(fig.layout, 1, Auto(1.0))  # xyii plot column (main width)
 colsize!(fig.layout, 2, Auto(1.0))  # xizi plot column (main width)
 colsize!(fig.layout, 3, Auto(0.6))  # Colorbar column (wider for better spacing)
+
+panel_width = layout_params.panel_width
+panel_height = 150  # Fixed height for all panels
 #---
 
-#+++ Create axes and plots
-dimnames_order = (:x_faa, :x_caa, :y_afa, :y_aca, :z_afa, :z_aac)
+#+++ Create axes and plots explicitly
+common_kwargs = (interpolate=false, nan_color=:lightgray)
 
-for (i, variable) in enumerate(variables)
-    @info "Creating panel: $variable"
+#+++ Row 1
+@info "Creating panel: u"
+ax_u_xyii = Axis(fig[2, 1]; ylabel="y (m)", width=panel_width, height=panel_height)
+u_xyii = FieldTimeSeries(fpath_xyii, "u", architecture=CPU())
+u_xyiiₙ = @lift u_xyii[$n]
+hm_u_xyii = heatmap!(ax_u_xyii, u_xyiiₙ; colorrange=color_ranges[:u].range, colormap=color_ranges[:u].colormap, common_kwargs...)
 
-    # Create xyii plot (column 1)
-    var_data_xyii = ds_xyii[variable]
-    dimnames_xyii = [dim for dim in dimnames_order if dim in map(ra.name, ra.dims(var_data_xyii))]
-    push!(dimnames_xyii, :Ti)
+ax_u_xizi = Axis(fig[2, 2]; ylabel="z (m)", width=panel_width, height=panel_height)
+u_xizi = FieldTimeSeries(fpath_xizi, "u", architecture=CPU())
+u_xiziₙ = @lift u_xizi[$n]
+hm_u_xizi = heatmap!(ax_u_xizi, u_xiziₙ; colorrange=color_ranges[:u].range, colormap=color_ranges[:u].colormap, common_kwargs...)
 
-    # Permute dimensions and create observable for xyii
-    v_xyii = permutedims(var_data_xyii, dimnames_xyii)
-    v_xyiiₙ = @lift v_xyii[Ti=$n]
-
-    # Calculate data aspect ratio for xyii
-    data_dims_xyii = size(v_xyii)
-    aspect_ratio_xyii = data_dims_xyii[1] / data_dims_xyii[2]
-
-    # Set panel dimensions for xyii
-    panel_width = layout_params.panel_width
-    panel_height_xyii = panel_width / aspect_ratio_xyii
-    panel_height_xyii = clamp(panel_height_xyii, panel_width * 0.3, panel_width * 2.0)
-
-    # Create xyii axis
-    if i == length(variables)
-        # Bottom panel: show x label
-        ax_xyii = Axis(fig[i+2, 1];
-                      xlabel=string(dimnames_xyii[1]), ylabel=string(dimnames_xyii[2]),
-                      width=panel_width, height=panel_height_xyii)
-    else
-        # Upper panels: no x label
-        ax_xyii = Axis(fig[i+2, 1];
-                       ylabel=string(dimnames_xyii[2]),
-                       width=panel_width, height=panel_height_xyii)
-
-        # Hide all x decorations for upper panels
-        hidexdecorations!(ax_xyii, label=false, ticklabels=false, ticks=false, grid=false)
-        ax_xyii.xticks = (Float64[], String[])
-        ax_xyii.xticklabelsize = 0
-        ax_xyii.xticksize = 0
-    end
-
-    # Create xyii heatmap
-    color_params = color_ranges[variable]
-    global hm_xyii = heatmap!(v_xyiiₙ; colorrange=color_params.range, colormap=color_params.colormap,
-                              (haskey(color_params, :colorscale) ? (colorscale=color_params.colorscale,) : ())...)
-
-    # Add buoyancy contours to xyii if available
-    if haskey(ds_xyii, :b)
-        for dim_combo in [(:x_caa, :z_aac), (:y_aca, :z_aac)]
-            try
-                b = permutedims(ds_xyii[:b], (dim_combo..., :Ti))
-                bₙ = @lift b[:, :, $n]
-                contour!(ax_xyii, bₙ; levels=10, color=:white, linestyle=:dash, linewidth=0.5, alpha=0.6)
-                break
-            catch
-                continue
-            end
-        end
-    end
-
-    # Create xizi plot (column 2)
-    var_data_xizi = ds_xizi[variable]
-    dimnames_xizi = [dim for dim in dimnames_order if dim in map(ra.name, ra.dims(var_data_xizi))]
-    push!(dimnames_xizi, :Ti)
-
-    # Permute dimensions and create observable for xizi
-    v_xizi = permutedims(var_data_xizi, dimnames_xizi)
-    v_xiziₙ = @lift v_xizi[Ti=$n]
-
-    # Use the same panel height as xyii for consistent layout
-    panel_height_xizi = panel_height_xyii
-
-    # Create xizi axis
-    if i == length(variables)
-        # Bottom panel: show x label
-        ax_xizi = Axis(fig[i+2, 2];
-                       xlabel=string(dimnames_xizi[1]), ylabel=string(dimnames_xizi[2]),
-                       width=panel_width, height=panel_height_xizi)
-    else
-        # Upper panels: no x label
-        ax_xizi = Axis(fig[i+2, 2];
-                       ylabel=string(dimnames_xizi[2]),
-                       width=panel_width, height=panel_height_xizi)
-
-        # Hide all x decorations for upper panels
-        hidexdecorations!(ax_xizi, label=false, ticklabels=false, ticks=false, grid=false)
-        ax_xizi.xticks = (Float64[], String[])
-        ax_xizi.xticklabelsize = 0
-        ax_xizi.xticksize = 0
-    end
-
-    # Create xizi heatmap
-    global hm_xizi = heatmap!(v_xiziₙ; colorrange=color_params.range, colormap=color_params.colormap,
-                              (haskey(color_params, :colorscale) ? (colorscale=color_params.colorscale,) : ())...)
-
-    # Add buoyancy contours to xizi if available
-    if haskey(ds_xizi, :b)
-        for dim_combo in [(:x_caa, :z_aac), (:y_aca, :z_aac)]
-            try
-                b = permutedims(ds_xizi[:b], (dim_combo..., :Ti))
-                bₙ = @lift b[:, :, $n]
-                contour!(ax_xizi, bₙ; levels=10, color=:white, linestyle=:dash, linewidth=0.5, alpha=0.6)
-                break
-            catch
-                continue
-            end
-        end
-    end
-
-    # Add colorbar (column 3)
-    cbar_label = try
-        metadata(ds_xyii[variable])["units"]
-    catch
-        string(variable)
-    end
-
-    # Use the same height for the colorbar since both panels have the same height
-    Colorbar(fig[i+2, 3], hm_xyii;
-             label=cbar_label, vertical=true,
-             width=layout_params.cbar_height, height=panel_height_xyii, ticklabelsize=12)
-end
+hidexdecorations!(ax_u_xyii)
+hidexdecorations!(ax_u_xizi)
+Colorbar(fig[2, 3], hm_u_xyii; label="u", vertical=true, width=layout_params.cbar_height, height=panel_height, ticklabelsize=12)
 #---
 
-#+++ Record animation
+#+++ Row 2
+@info "Creating panel: PV"
+ax_PV_xyii = Axis(fig[3, 1]; ylabel="y (m)", width=panel_width, height=panel_height)
+PV_xyii = FieldTimeSeries(fpath_xyii, "PV", architecture=CPU())
+PV_xyiiₙ = @lift PV_xyii[$n]
+hm_PV_xyii = heatmap!(ax_PV_xyii, PV_xyiiₙ; colorrange=color_ranges[:PV].range, colormap=color_ranges[:PV].colormap, common_kwargs...)
+
+ax_PV_xizi = Axis(fig[3, 2]; ylabel="z (m)", width=panel_width, height=panel_height)
+PV_xizi = FieldTimeSeries(fpath_xizi, "PV", architecture=CPU())
+PV_xiziₙ = @lift PV_xizi[$n]
+hm_PV_xizi = heatmap!(ax_PV_xizi, PV_xiziₙ; colorrange=color_ranges[:PV].range, colormap=color_ranges[:PV].colormap, common_kwargs...)
+
+hidexdecorations!(ax_PV_xyii)
+hidexdecorations!(ax_PV_xizi)
+Colorbar(fig[3, 3], hm_PV_xyii; label="PV", vertical=true, width=layout_params.cbar_height, height=panel_height, ticklabelsize=12)
+#---
+
+#+++ Row 3
+@info "Creating panel: εₖ"
+ax_εₖ_xyii = Axis(fig[4, 1]; ylabel="y (m)", width=panel_width, height=panel_height)
+εₖ_xyii = FieldTimeSeries(fpath_xyii, "εₖ", architecture=CPU())
+εₖ_xyiiₙ = @lift εₖ_xyii[$n]
+hm_εₖ_xyii = heatmap!(ax_εₖ_xyii, εₖ_xyiiₙ; colorrange=color_ranges[:εₖ].range, colormap=color_ranges[:εₖ].colormap, common_kwargs...)
+
+ax_εₖ_xizi = Axis(fig[4, 2]; ylabel="z (m)", width=panel_width, height=panel_height)
+εₖ_xizi = FieldTimeSeries(fpath_xizi, "εₖ", architecture=CPU())
+εₖ_xiziₙ = @lift εₖ_xizi[$n]
+hm_εₖ_xizi = heatmap!(ax_εₖ_xizi, εₖ_xiziₙ; colorrange=color_ranges[:εₖ].range, colormap=color_ranges[:εₖ].colormap, common_kwargs...)
+
+hidexdecorations!(ax_εₖ_xyii)
+hidexdecorations!(ax_εₖ_xizi)
+Colorbar(fig[4, 3], hm_εₖ_xyii; label="εₖ", vertical=true, width=layout_params.cbar_height, height=panel_height, ticklabelsize=12)
+#---
+
+#+++ Row 4
+@info "Creating panel: Ro"
+ax_Ro_xyii = Axis(fig[5, 1]; xlabel="x (m)", ylabel="y (m)", width=panel_width, height=panel_height)
+Ro_xyii = FieldTimeSeries(fpath_xyii, "Ro", architecture=CPU())
+Ro_xyiiₙ = @lift Ro_xyii[$n]
+hm_Ro_xyii = heatmap!(ax_Ro_xyii, Ro_xyiiₙ; colorrange=color_ranges[:Ro].range, colormap=color_ranges[:Ro].colormap, common_kwargs...)
+
+ax_Ro_xizi = Axis(fig[5, 2]; xlabel="x (m)", ylabel="z (m)", width=panel_width, height=panel_height)
+Ro_xizi = FieldTimeSeries(fpath_xizi, "Ro", architecture=CPU())
+Ro_xiziₙ = @lift Ro_xizi[$n]
+hm_Ro_xizi = heatmap!(ax_Ro_xizi, Ro_xiziₙ; colorrange=color_ranges[:Ro].range, colormap=color_ranges[:Ro].colormap, common_kwargs...)
+
+Colorbar(fig[5, 3], hm_Ro_xyii; label="Ro", vertical=true, width=layout_params.cbar_height, height=panel_height, ticklabelsize=12)
+#---
+#---
+
+#+++ Adjust figure and record animation
 @info "Recording animation with $(length(frames)) frames"
 resize_to_layout!(fig)
 

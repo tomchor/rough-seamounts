@@ -4,7 +4,7 @@
 #PBS -o logs/{simname_ascii}.log
 #PBS -e logs/{simname_ascii}.log
 #PBS -l walltime=23:59:00
-#PBS -q YOUR_QUEUE
+#PBS -q casper # Change this to whatever queue you use on your cluster
 #PBS -M YOUR_EMAIL
 #PBS -m ae
 #PBS -r n
