@@ -23,7 +23,7 @@ run_simulation_batch(
     julia_script = "seamount.jl",
     scheduler = "pbs",
     remove_checkpoints = False,
-    only_one_job = True,
+    only_one_job = False,
     dry_run = False,
     verbose = 1,
     aux_filename = "aux_submission_script.sh"
