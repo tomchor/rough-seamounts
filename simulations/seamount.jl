@@ -332,11 +332,7 @@ model = NonhydrostaticModel(grid, timestepper = :RungeKutta3,
                             buoyancy = BuoyancyTracer(),
                             coriolis = FPlane(params.f_0),
                             tracers = :b,
-                            # closure = closure,
                             boundary_conditions = bcs,
-                            forcing = (; u=u_sponge, v=(v_sponge, Fᵥ), w=w_sponge, b=b_sponge),
-                            # hydrostatic_pressure_anomaly = CenterField(grid),
-                            #pressure_solver = ConjugateGradientPoissonSolver(grid, preconditioner = fft_poisson_solver(grid.underlying_grid), maxiter = 100),
                             )
 @info "" model
 show_gpu_status()
@@ -348,7 +344,7 @@ set!(model, b=(x, y, z) -> b∞(z), u=params.U∞)
 params = (; params..., T_adv_max = params.T_adv_spinup + params.T_adv_stats)
 simulation = Simulation(model, Δt = 0.2 * params.Δz_min / params.U∞,
                         stop_time = params.T_adv_max * params.T_adv,
-                        wall_time_limit = 5minutes,
+                        wall_time_limit = 2minutes,
                         minimum_relative_step = 1e-10,
                         )
 
@@ -383,10 +379,9 @@ add_callback!(simulation, cfl_changer, SpecifiedTimes([t_switch]); name=:cfl_cha
 include("$rundir/diagnostics.jl")
 
 #+++ Define checkpointer/pickup
-write_ckpt = params.dz < 2
+write_ckpt = true
 interval_time_avg = params.T_adv
 
-if write_ckpt
     checkpointer_prefix = "ckpt.$(params.simname)"
     if any(startswith(checkpointer_prefix), readdir("data"))
         @warn "Checkpoint for $(params.simname) found. Assuming this is a pick-up simulation! Setting overwrite_existing=false."
@@ -406,11 +401,6 @@ if write_ckpt
                                                                       cleanup = true,
                                                                       )
     #---
-
-else
-    @warn "No checkpointing necessary for this simulation."
-    overwrite_existing = true
-end
 #---
 #---
 
@@ -418,9 +408,4 @@ end
 show_gpu_status()
 @info "Starting simulation"
 run!(simulation, pickup=write_ckpt, checkpoint_at_end=write_ckpt)
-#---
-
-#+++ Plot video
-# include("$rundir/plot_2d_animation.jl")
-# include("$rundir/plot_3d_animation.jl")
 #---
