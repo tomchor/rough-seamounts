@@ -215,10 +215,10 @@ pprintln(params)
 
 #+++ Base grid
 grid_base = RectilinearGrid(arch; topology = (Bounded, Periodic, Bounded),
-                            size = (params.Nx, params.Ny, params.Nz),
-                            x = (-params.x_offset, params.Lx - params.x_offset),
-                            y = (-params.Ly/2, +params.Ly/2),
-                            z = z_coords,
+                            size = (8, 8, 8),
+                            x = (-1000, 1000),
+                            y = (-1000, 1000),
+                            z = (-100, 0),
                             halo = (4, 4, 4),
                             )
 @info grid_base
@@ -290,40 +290,6 @@ b_bcs = FieldBoundaryConditions(west=b_west, east=b_east)
 bcs = (u=u_bcs, v=v_bcs, w=w_bcs, b=b_bcs)
 #---
 
-#+++ Define geostrophic forcing
-@inline geostrophy(x, y, z, t, p) = p.f₀ * p.U∞
-Fᵥ = Forcing(geostrophy, parameters = (; params.f₀, params.U∞))
-#---
-
-#+++ Turbulence closure
-if params.closure == "CSM"
-    closure = SmagorinskyLilly(C=0.13, Pr=1)
-elseif params.closure == "DSM"
-    closure = DynamicSmagorinsky(averaging=LagrangianAveraging(), schedule=IterationInterval(5), Pr=1)
-elseif params.closure == "AMD"
-    closure = AnisotropicMinimumDissipation(C=1/12)
-elseif params.closure == "NON"
-    closure = nothing
-else
-    throw(ArgumentError("Check options for `closure`"))
-end
-
-#---
-
-#+++ Add top sponge layer
-let
-    h_sponge = 0.2 * params.Lz
-    sponge_damping_rate = max(√params.N²∞, params.α * params.U∞ / h_sponge) / 10
-    global params = merge(params, Base.@locals)
-end
-
-mask_top = PiecewiseLinearMask{:z}(center=params.Lz, width=params.h_sponge)
-w_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=0)
-v_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=0)
-u_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=params.U∞)
-b_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=b∞)
-#---
-
 #+++ Model and ICs
 @info "Creating model"
 
@@ -375,32 +341,28 @@ add_callback!(simulation, cfl_changer, SpecifiedTimes([t_switch]); name=:cfl_cha
 @info "" simulation
 #---
 
-#+++ Outputs and diagnostics
-include("$rundir/diagnostics.jl")
-
 #+++ Define checkpointer/pickup
 write_ckpt = true
 interval_time_avg = params.T_adv
 
-    checkpointer_prefix = "ckpt.$(params.simname)"
-    if any(startswith(checkpointer_prefix), readdir("data"))
-        @warn "Checkpoint for $(params.simname) found. Assuming this is a pick-up simulation! Setting overwrite_existing=false."
-        overwrite_existing = false
-    else
-        @warn "No checkpoint for $(params.simname) found. Setting overwrite_existing=true."
-        overwrite_existing = true
-    end
+checkpointer_prefix = "ckpt.$(params.simname)"
+if any(startswith(checkpointer_prefix), readdir("data"))
+    @warn "Checkpoint for $(params.simname) found. Assuming this is a pick-up simulation! Setting overwrite_existing=false."
+    overwrite_existing = false
+else
+    @warn "No checkpoint for $(params.simname) found. Setting overwrite_existing=true."
+    overwrite_existing = true
+end
 
-    #+++ Construct checkpointer
-    @info "Setting up checkpointer"
-    simulation.output_writers[:ckpt_writer] = @CUDAstats Checkpointer(model;
-                                                                      dir = "$rundir/data/",
-                                                                      prefix = checkpointer_prefix,
-                                                                      schedule = TimeInterval(interval_time_avg),
-                                                                      overwrite_existing = true,
-                                                                      cleanup = true,
-                                                                      )
-    #---
+#+++ Construct checkpointer
+@info "Setting up checkpointer"
+simulation.output_writers[:ckpt_writer] = @CUDAstats Checkpointer(model;
+                                                                    dir = "$rundir/data/",
+                                                                    prefix = checkpointer_prefix,
+                                                                    schedule = TimeInterval(interval_time_avg),
+                                                                    overwrite_existing = true,
+                                                                    cleanup = true,
+                                                                    )
 #---
 #---
 
