@@ -333,7 +333,7 @@ model = NonhydrostaticModel(grid, timestepper = :RungeKutta3,
                             coriolis = FPlane(params.f_0),
                             tracers = :b,
                             # closure = closure,
-                            # boundary_conditions = bcs,
+                            boundary_conditions = bcs,
                             forcing = (; u=u_sponge, v=(v_sponge, Fᵥ), w=w_sponge, b=b_sponge),
                             # hydrostatic_pressure_anomaly = CenterField(grid),
                             #pressure_solver = ConjugateGradientPoissonSolver(grid, preconditioner = fft_poisson_solver(grid.underlying_grid), maxiter = 100),
@@ -348,7 +348,7 @@ set!(model, b=(x, y, z) -> b∞(z), u=params.U∞)
 params = (; params..., T_adv_max = params.T_adv_spinup + params.T_adv_stats)
 simulation = Simulation(model, Δt = 0.2 * params.Δz_min / params.U∞,
                         stop_time = params.T_adv_max * params.T_adv,
-                        wall_time_limit = 0.5hours,
+                        wall_time_limit = 5minutes,
                         minimum_relative_step = 1e-10,
                         )
 
@@ -412,27 +412,6 @@ else
     overwrite_existing = true
 end
 #---
-
-tick()
-construct_outputs(simulation;
-                  simname = params.simname,
-                  rundir = rundir,
-                  params = params,
-                  overwrite_existing = overwrite_existing,
-                  interval_2d = 0.1*params.T_adv,
-                  interval_3d = 0.5*params.T_adv,
-                  interval_time_avg,
-                  write_xyzi = false,
-                  write_xizi = false,
-                  write_xyii = false,
-                  write_iyzi = false,
-                  write_xyza = false,
-                  write_xyia = false,
-                  write_aaai = false,
-                  write_ckpt,
-                  debug = false,
-                  )
-tock()
 #---
 
 #+++ Run simulations and plot video afterwards
