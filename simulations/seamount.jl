@@ -333,8 +333,8 @@ model = NonhydrostaticModel(grid, timestepper = :RungeKutta3,
                             coriolis = FPlane(params.f_0),
                             tracers = :b,
                             # closure = closure,
-                            boundary_conditions = bcs,
-                            forcing = (; u=u_sponge, v=(v_sponge, Fᵥ), w=w_sponge, b=b_sponge),
+                            # boundary_conditions = bcs,
+                            # forcing = (; u=u_sponge, v=(v_sponge, Fᵥ), w=w_sponge, b=b_sponge),
                             # hydrostatic_pressure_anomaly = CenterField(grid),
                             #pressure_solver = ConjugateGradientPoissonSolver(grid, preconditioner = fft_poisson_solver(grid.underlying_grid), maxiter = 100),
                             )
@@ -348,7 +348,7 @@ set!(model, b=(x, y, z) -> b∞(z), u=params.U∞)
 params = (; params..., T_adv_max = params.T_adv_spinup + params.T_adv_stats)
 simulation = Simulation(model, Δt = 0.2 * params.Δz_min / params.U∞,
                         stop_time = params.T_adv_max * params.T_adv,
-                        wall_time_limit = 2hours,
+                        wall_time_limit = 0.5hours,
                         minimum_relative_step = 1e-10,
                         )
 
@@ -442,6 +442,6 @@ run!(simulation, pickup=write_ckpt, checkpoint_at_end=write_ckpt)
 #---
 
 #+++ Plot video
-include("$rundir/plot_2d_animation.jl")
-include("$rundir/plot_3d_animation.jl")
+# include("$rundir/plot_2d_animation.jl")
+# include("$rundir/plot_3d_animation.jl")
 #---
