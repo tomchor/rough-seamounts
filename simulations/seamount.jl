@@ -334,7 +334,7 @@ model = NonhydrostaticModel(grid, timestepper = :RungeKutta3,
                             tracers = :b,
                             # closure = closure,
                             # boundary_conditions = bcs,
-                            # forcing = (; u=u_sponge, v=(v_sponge, Fᵥ), w=w_sponge, b=b_sponge),
+                            forcing = (; u=u_sponge, v=(v_sponge, Fᵥ), w=w_sponge, b=b_sponge),
                             # hydrostatic_pressure_anomaly = CenterField(grid),
                             #pressure_solver = ConjugateGradientPoissonSolver(grid, preconditioner = fft_poisson_solver(grid.underlying_grid), maxiter = 100),
                             )
