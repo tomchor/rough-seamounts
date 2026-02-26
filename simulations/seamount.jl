@@ -308,9 +308,9 @@ set!(model, b=(x, y, z) -> b∞(z), u=params.U∞)
 
 #+++ Create simulation
 params = (; params..., T_adv_max = params.T_adv_spinup + params.T_adv_stats)
-simulation = Simulation(model, Δt = 0.2 * params.Δz_min / params.U∞,
+simulation = Simulation(model, Δt = 0.1 * params.Δz_min / params.U∞,
                         stop_time = params.T_adv_max * params.T_adv,
-                        wall_time_limit = 2minutes,
+                        wall_time_limit = 1minutes,
                         minimum_relative_step = 1e-10,
                         )
 
@@ -321,13 +321,8 @@ cg_iterations(simulation) = simulation.model.pressure_solver isa ConjugateGradie
 progress(simulation) = @info (PercentageProgress(with_prefix=false, with_units=false)
                               + "$(round(time(simulation)/params.T_adv; digits=2)) adv periods" + walltime
                               + TimeStep() + "CFL = " * AdvectiveCFLNumber(with_prefix=false)
-                              + MaxUVelocity()
-                              + "step dur = " * walltime_per_timestep
-                              + cg_iterations(simulation)
                               )(simulation)
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(40))
-
-conjure_time_step_wizard!(simulation, IterationInterval(1), max_change=1.05, cfl=0.9, min_Δt=1e-4, max_Δt=1/√params.N²∞)
 
 t_switch = 12 * params.T_adv
 function cfl_changer(sim)
