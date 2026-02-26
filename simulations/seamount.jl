@@ -267,27 +267,12 @@ v_west = w_west = ValueBoundaryCondition(0)
 v_east = w_east = FluxBoundaryCondition(0)
 #---
 
-#+++ Boundary and initial conditions for buoyancy
-struct LinearStratification
-    N²∞ :: Float64 # stratification strength (s⁻²)
-end
-
-(strat::LinearStratification)(z) = strat.N²∞ * z
-(strat::LinearStratification)(x, y, z) = strat(z) # For initial condition
-(strat::LinearStratification)(x, y, z, t) = strat(z) # For the sponge layer
-b∞ = LinearStratification(params.N²∞)
-
-b_boundaries(x, z, t, N²∞) = z * N²∞
-b_west = b_east = ValueBoundaryCondition(b_boundaries, parameters=params.N²∞)
-#---
-
 #+++ Assemble BCs
 u_bcs = FieldBoundaryConditions(west=u_west, east=u_east, immersed=τᵘ)
 v_bcs = FieldBoundaryConditions(west=v_west, east=v_east, immersed=τᵛ)
 w_bcs = FieldBoundaryConditions(west=w_west, east=w_east, immersed=τʷ)
-b_bcs = FieldBoundaryConditions(west=b_west, east=b_east)
 
-bcs = (u=u_bcs, v=v_bcs, w=w_bcs, b=b_bcs)
+bcs = (u=u_bcs, v=v_bcs, w=w_bcs)
 #---
 
 #+++ Model and ICs
@@ -295,15 +280,13 @@ bcs = (u=u_bcs, v=v_bcs, w=w_bcs, b=b_bcs)
 
 model = NonhydrostaticModel(grid, timestepper = :RungeKutta3,
                             advection = WENO(order=5, minimum_buffer_upwind_order=1), # minimum_buffer_upwind_order=1 necessary for PerturbationAdvection
-                            buoyancy = BuoyancyTracer(),
                             coriolis = FPlane(params.f_0),
-                            tracers = :b,
                             boundary_conditions = bcs,
                             )
 @info "" model
 show_gpu_status()
 
-set!(model, b=(x, y, z) -> b∞(z), u=params.U∞)
+set!(model, u=params.U∞)
 #---
 
 #+++ Create simulation
