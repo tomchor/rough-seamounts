@@ -225,43 +225,20 @@ w_bcs = FieldBoundaryConditions(west=w_west, east=w_east)
 bcs = (u=u_bcs, v=v_bcs, w=w_bcs)
 #---
 
-#+++ Model and ICs
 @info "Creating model"
-
 model = NonhydrostaticModel(grid, timestepper = :RungeKutta3,
                             advection = WENO(order=5, minimum_buffer_upwind_order=1), # minimum_buffer_upwind_order=1 necessary for PerturbationAdvection
                             coriolis = FPlane(params.f_0),
                             boundary_conditions = bcs,
                             )
-@info "" model
-show_gpu_status()
 
-set!(model, u=params.U∞)
-#---
-
-#+++ Create simulation
-params = (; params..., T_adv_max = params.T_adv_spinup + params.T_adv_stats)
-simulation = Simulation(model, Δt = 0.1 * params.Δz_min / params.U∞,
-                        stop_time = params.T_adv_max * params.T_adv,
-                        wall_time_limit = 1minutes,
+simulation = Simulation(model, Δt = 40seconds,
+                        wall_time_limit = 1second,
                         minimum_relative_step = 1e-10,
                         )
 
-using Oceanostics.ProgressMessengers
-walltime_per_timestep = StepDuration(with_prefix=false) # This needs to instantiated here, and not in the function below
-walltime = Walltime()
-cg_iterations(simulation) = simulation.model.pressure_solver isa ConjugateGradientPoissonSolver ? "iterations = $(iteration(model.pressure_solver))" : ""
-progress(simulation) = @info (PercentageProgress(with_prefix=false, with_units=false)
-                              + "$(round(time(simulation)/params.T_adv; digits=2)) adv periods" + walltime
-                              + TimeStep() + "CFL = " * AdvectiveCFLNumber(with_prefix=false)
-                              )(simulation)
-simulation.callbacks[:progress] = Callback(progress, IterationInterval(40))
-@info "" simulation
-#---
-
 #+++ Define checkpointer/pickup
 write_ckpt = true
-interval_time_avg = params.T_adv
 
 checkpointer_prefix = "ckpt.$(params.simname)"
 if any(startswith(checkpointer_prefix), readdir("data"))
@@ -277,7 +254,7 @@ end
 simulation.output_writers[:ckpt_writer] = @CUDAstats Checkpointer(model;
                                                                     dir = "$rundir/data/",
                                                                     prefix = checkpointer_prefix,
-                                                                    schedule = TimeInterval(interval_time_avg),
+                                                                    schedule = TimeInterval(10minutes),
                                                                     overwrite_existing = true,
                                                                     cleanup = true,
                                                                     )
