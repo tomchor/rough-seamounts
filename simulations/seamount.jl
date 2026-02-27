@@ -123,44 +123,6 @@ end
 @info "Starting simulation $(params.simname) with a vertical spacing of $(params.dz) meters and $arch architecture\n"
 #---
 
-#+++ Create interpolant for (and maybe smooth) bathymetry
-bathymetry_filepath = joinpath(@__DIR__, "../bathymetry/balanus-GMRT-bathymetry-preprocessed.nc")
-ds_bathymetry = NCDataset(bathymetry_filepath)
-elevation = ds_bathymetry["periodic_elevation"] |> collect
-x = ds_bathymetry["x"] |> collect
-y = ds_bathymetry["y"] |> collect
-
-# Double check that the FWHM is the same as the data's FWHM
-original_FWHM = measure_FWHM(x, y, elevation)
-@assert isapprox(original_FWHM, ds_bathymetry.attrib["FWHM"], rtol=1e-3)
-
-if params.L == 0
-    @warn "No smoothing performed on the bathymetry"
-    smoothed_elevation = elevation
-else
-    @warn "Smoothing bathymetry with length scale L/FWHM=$(params.L)"
-    smoothed_elevation = smooth_bathymetry_with_coarsening(elevation, x, y;
-                                                           scale_x=params.L * ds_bathymetry.attrib["FWHM"],
-                                                           scale_y=params.L * ds_bathymetry.attrib["FWHM"])
-end
-
-# Make sure that the total mass of the smoothed bathymetry is about the same as the original bathymetry
-@assert isapprox(sum(smoothed_elevation), sum(elevation), rtol=0.1)
-
-# Now we shrink the bathymetry
-params = (; params..., H_ratio = params.H / maximum(smoothed_elevation), # How much do we rescale in the vertical?
-                       FWHM_ratio = params.FWHM / ds_bathymetry.attrib["FWHM"]) # How much do we rescale in the horizontal?
-
-shrunk_smoothed_elevation = smoothed_elevation .* params.H_ratio
-
-shrunk_x = x .* params.FWHM_ratio
-shrunk_y = y .* params.FWHM_ratio
-
-@info "Interpolating bathymetry"
-bathymetry_itp = Interpolations.LinearInterpolation((shrunk_x, shrunk_y), shrunk_smoothed_elevation, extrapolation_bc=Interpolations.Flat())
-close(ds_bathymetry)
-#---
-
 #+++ Get domain sizes, z_coords, and secondary simulation parameters
 let
     #+++ Geometry
@@ -214,49 +176,37 @@ pprintln(params)
 #---
 
 #+++ Base grid
-grid_base = RectilinearGrid(arch; topology = (Bounded, Periodic, Bounded),
-                            size = (8, 8, 8),
-                            x = (-1000, 1000),
-                            y = (-1000, 1000),
-                            z = (-100, 0),
+grid = RectilinearGrid(arch; topology = (Bounded, Periodic, Bounded),
+                            size = (params.Nx, params.Ny, params.Nz),
+                            x = (-params.x_offset, params.Lx - params.x_offset),
+                            y = (-params.Ly/2, +params.Ly/2),
+                            z = z_coords,
                             halo = (4, 4, 4),
                             )
-@info grid_base
-params = (; params..., Δz_min = minimum_zspacing(grid_base))
-#---
-
-#+++ Interpolate bathymetry and create immersed boundary grid
-x_grid = xnodes(grid_base, Center(), Center(), Center())
-y_grid = ynodes(grid_base, Center(), Center(), Center())
-
-if occursin("labanus", params.simname) # Use 90° rotation of the bathymetry
-    @warn "Using 90° rotation of the bathymetry!"
-    interpolated_bathymetry_cpu = bathymetry_itp.(reshape(y_grid, (1, grid_base.Ny)), reshape(x_grid, (grid_base.Nx, 1)))
-else # Use regular bathymetry
-    interpolated_bathymetry_cpu = bathymetry_itp.(reshape(x_grid, (grid_base.Nx, 1)), reshape(y_grid, (1, grid_base.Ny)))
+if arch isa CPU
+    @info grid
 end
-interpolated_bathymetry = on_architecture(grid_base.architecture, interpolated_bathymetry_cpu)
-
-grid = ImmersedBoundaryGrid(grid_base, GridFittedBottom(interpolated_bathymetry))
-@info grid
+params = (; params..., Δz_min = minimum_zspacing(grid))
 #---
 
-#+++ Drag (Implemented as in https://doi.org/10.1029/2005WR004685)
+#+++ Drag boundary conditions at bottom
 z₀ = params.z_0 # roughness length
-z₁ = minimum_zspacing(grid_base, Center(), Center(), Center())/2
-@info "Using z₁ =" z₁
+z₁ = minimum_zspacing(grid, Center(), Center(), Center())/2
+if arch isa CPU
+    @info "Using z₁ =" z₁
+end
 
 const κᵛᵏ = 0.4 # von Karman constant
 params = (; params..., c_dz = (κᵛᵏ / log(z₁/z₀))^2) # quadratic drag coefficient
-@info "Defining momentum BCs with Cᴰ (x, y, z) =" params.c_dz
+if arch isa CPU
+    @info "Defining momentum BCs with Cᴰ (x, y, z) =" params.c_dz
+end
 
-@inline τᵘ_drag(x, y, z, t, u, v, w, p) = -p.Cᴰ * u * √(u^2 + v^2 + w^2)
-@inline τᵛ_drag(x, y, z, t, u, v, w, p) = -p.Cᴰ * v * √(u^2 + v^2 + w^2)
-@inline τʷ_drag(x, y, z, t, u, v, w, p) = -p.Cᴰ * w * √(u^2 + v^2 + w^2)
+@inline τᵘ_drag(x, y, z, u, v, w, p) = -p.Cᴰ * u * √(u^2 + v^2 + w^2)
+@inline τᵛ_drag(x, y, z, u, v, w, p) = -p.Cᴰ * v * √(u^2 + v^2 + w^2)
 
-τᵘ = FluxBoundaryCondition(τᵘ_drag, field_dependencies = (:u, :v, :w), parameters=(; Cᴰ = params.c_dz,))
-τᵛ = FluxBoundaryCondition(τᵛ_drag, field_dependencies = (:u, :v, :w), parameters=(; Cᴰ = params.c_dz,))
-τʷ = FluxBoundaryCondition(τʷ_drag, field_dependencies = (:u, :v, :w), parameters=(; Cᴰ = params.c_dz,))
+τᵘ_bottom = FluxBoundaryCondition(τᵘ_drag, field_dependencies = (:u, :v, :w), parameters=(; Cᴰ = params.c_dz,))
+τᵛ_bottom = FluxBoundaryCondition(τᵛ_drag, field_dependencies = (:u, :v, :w), parameters=(; Cᴰ = params.c_dz,))
 #---
 
 #+++ Open boundary conditions for velocitities
@@ -268,9 +218,9 @@ v_east = w_east = FluxBoundaryCondition(0)
 #---
 
 #+++ Assemble BCs
-u_bcs = FieldBoundaryConditions(west=u_west, east=u_east, immersed=τᵘ)
-v_bcs = FieldBoundaryConditions(west=v_west, east=v_east, immersed=τᵛ)
-w_bcs = FieldBoundaryConditions(west=w_west, east=w_east, immersed=τʷ)
+u_bcs = FieldBoundaryConditions(west=u_west, east=u_east, bottom=τᵘ_bottom)
+v_bcs = FieldBoundaryConditions(west=v_west, east=v_east, bottom=τᵛ_bottom)
+w_bcs = FieldBoundaryConditions(west=w_west, east=w_east)
 
 bcs = (u=u_bcs, v=v_bcs, w=w_bcs)
 #---
@@ -306,16 +256,6 @@ progress(simulation) = @info (PercentageProgress(with_prefix=false, with_units=f
                               + TimeStep() + "CFL = " * AdvectiveCFLNumber(with_prefix=false)
                               )(simulation)
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(40))
-
-t_switch = 12 * params.T_adv
-function cfl_changer(sim)
-    if sim.model.clock.time > 0
-        @warn "Changing target cfl"
-        simulation.callbacks[:time_step_wizard].func.cfl = 0.8
-    end
-end
-add_callback!(simulation, cfl_changer, SpecifiedTimes([t_switch]); name=:cfl_changer)
-
 @info "" simulation
 #---
 
