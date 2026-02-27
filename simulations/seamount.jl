@@ -1,26 +1,14 @@
 using Oceananigans
 using Oceananigans.Units
 
-#+++ Base grid
-grid = RectilinearGrid(topology = (Bounded, Periodic, Bounded),
-                       size = (8, 8, 8),
-                       x = (-1000, 1000),
-                       y = (-1000, 1000),
-                       z = (-100, 0),
-                       )
+grid = RectilinearGrid(topology = (Bounded, Periodic, Bounded), size = (8, 8, 8), extent = (1, 1, 1))
 
-#+++ Open boundary conditions for velocities
 u_west = OpenBoundaryCondition(1)
 u_east = OpenBoundaryCondition(1; scheme = PerturbationAdvection(inflow_timescale = 2minutes, outflow_timescale = 30minutes))
-#---
-
-#+++ Assemble BCs
 u_bcs = FieldBoundaryConditions(west=u_west, east=u_east)
-bcs = (u=u_bcs,)
-#---
 
 @info "Creating model"
-model = NonhydrostaticModel(grid, boundary_conditions = bcs)
+model = NonhydrostaticModel(grid, boundary_conditions = (u=u_bcs,))
 
 simulation = Simulation(model, Δt = 40seconds,
                         wall_time_limit = 1second,
@@ -40,11 +28,11 @@ end
 
 @info "Setting up checkpointer"
 simulation.output_writers[:ckpt_writer] = Checkpointer(model;
-                                                        prefix = checkpointer_prefix,
-                                                        schedule = TimeInterval(10minutes),
-                                                        overwrite_existing = true,
-                                                        cleanup = true,
-                                                        )
+                                                       prefix = checkpointer_prefix,
+                                                       schedule = TimeInterval(10minutes),
+                                                       overwrite_existing = true,
+                                                       cleanup = true,
+                                                       )
 #---
 
 #+++ Run simulation
