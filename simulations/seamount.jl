@@ -79,30 +79,18 @@ T_adv      = FWHM / U∞
 #---
 
 #+++ Base grid
-grid = RectilinearGrid(CPU(); topology = (Bounded, Periodic, Bounded),
-                              size = (Nx, Ny, Nz),
-                              x = (-x_offset, Lx - x_offset),
-                              y = (-Ly/2, +Ly/2),
-                              z = z_coords,
-                              halo = (4, 4, 4),
-                              )
-@info grid
-Δz_min = minimum_zspacing(grid)
+grid = RectilinearGrid(topology = (Bounded, Periodic, Bounded),
+                       size = (8, 8, 8),
+                       x = (-1000, 1000),
+                       y = (-1000, 1000),
+                       z = (-100, 0),
+                       halo = (4, 4, 4),
+                       )
 #---
 
 #+++ Drag boundary conditions at bottom
-z₁ = minimum_zspacing(grid, Center(), Center(), Center()) / 2
-@info "Using z₁ =" z₁
-
-const κᵛᵏ = 0.4 # von Karman constant
-c_dz = (κᵛᵏ / log(z₁/z₀))^2 # quadratic drag coefficient
-@info "Defining momentum BCs with Cᴰ =" c_dz
-
-@inline τᵘ_drag(x, y, z, u, v, w, p) = -p.Cᴰ * u * √(u^2 + v^2 + w^2)
-@inline τᵛ_drag(x, y, z, u, v, w, p) = -p.Cᴰ * v * √(u^2 + v^2 + w^2)
-
-τᵘ_bottom = FluxBoundaryCondition(τᵘ_drag, field_dependencies = (:u, :v, :w), parameters=(; Cᴰ = c_dz,))
-τᵛ_bottom = FluxBoundaryCondition(τᵛ_drag, field_dependencies = (:u, :v, :w), parameters=(; Cᴰ = c_dz,))
+τᵘ_bottom = FluxBoundaryCondition(0)
+τᵛ_bottom = FluxBoundaryCondition(0)
 #---
 
 #+++ Open boundary conditions for velocities
@@ -122,15 +110,10 @@ bcs = (u=u_bcs, v=v_bcs, w=w_bcs)
 #---
 
 @info "Creating model"
-model = NonhydrostaticModel(grid, timestepper = :RungeKutta3,
-                            advection = WENO(order=5, minimum_buffer_upwind_order=1), # minimum_buffer_upwind_order=1 necessary for PerturbationAdvection
-                            coriolis = FPlane(f_0),
-                            boundary_conditions = bcs,
-                            )
+model = NonhydrostaticModel(grid, boundary_conditions = bcs)
 
 simulation = Simulation(model, Δt = 40seconds,
                         wall_time_limit = 1second,
-                        minimum_relative_step = 1e-10,
                         )
 
 #+++ Define checkpointer/pickup
