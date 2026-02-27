@@ -2,8 +2,7 @@ using Oceananigans
 
 grid = RectilinearGrid(topology = (Bounded, Periodic, Bounded), size = (8, 8, 8), extent = (1, 1, 1))
 
-u_west = OpenBoundaryCondition(1)
-u_east = OpenBoundaryCondition(1; scheme = PerturbationAdvection(inflow_timescale = 2minutes, outflow_timescale = 30minutes))
+u_east = OpenBoundaryCondition(0; scheme = PerturbationAdvection())
 u_bcs = FieldBoundaryConditions(west=u_west, east=u_east)
 
 model = NonhydrostaticModel(grid, boundary_conditions = (u=u_bcs,))
