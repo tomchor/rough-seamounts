@@ -1,0 +1,105 @@
+name: Simulation Tests
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  run-tests:
+    name: Run simulation tests
+    runs-on: ubuntu-latest
+
+    # Only run when the comment is on a PR and starts with /run-tests
+    if: |
+      github.event.issue.pull_request != null &&
+      startsWith(github.event.comment.body, '/run-tests')
+
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: React to trigger comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket',
+            });
+
+      - name: Get PR head SHA
+        id: sha
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHA=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.issue.number }} --jq '.head.sha')
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
+
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.12'
+
+      - uses: julia-actions/cache@v2
+
+      - name: Install Julia packages
+        run: julia --project=. -e 'import Pkg; Pkg.instantiate()'
+
+      - name: Create output directories
+        run: mkdir -p simulations/data anims figures
+
+      - name: Run simulation
+        env:
+          DISPLAY: ""   # forces plot_2d_animation.jl to use CairoMakie (headless-safe)
+        run: |
+          cd simulations
+          julia --project=.. seamount.jl \
+            --simname=ci_test \
+            --T_adv_spinup=0.5 \
+            --T_adv_stats=0.5 || true
+          # The || true tolerates a non-zero exit from plot_3d_animation.jl, which
+          # requires OpenGL unavailable in CI. The verify step below checks that
+          # the simulation itself and the 2D animation actually completed.
+
+      - name: Verify outputs
+        id: verify
+        run: |
+          set -e
+          echo "=== Checking simulation data files ==="
+          test -f simulations/data/xyii.ci_test.nc || { echo "FAIL: xyii output missing"; exit 1; }
+          test -f simulations/data/aaai.ci_test.nc || { echo "FAIL: aaai output missing"; exit 1; }
+          echo "=== Checking 2D animation ==="
+          test -f anims/ci_test.mp4               || { echo "FAIL: 2D animation missing"; exit 1; }
+          echo "=== All checks passed! ==="
+
+      - name: Upload animation artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-test-animation
+          path: anims/ci_test.mp4
+          if-no-files-found: warn
+
+      - name: Comment result on PR
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const success = '${{ steps.verify.outcome }}' === 'success';
+            const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            const body = success
+              ? `✅ **Tests passed!** Simulation ran to completion and the 2D animation was generated. [View run](${runUrl})`
+              : `❌ **Tests failed.** [View run](${runUrl}) for details.`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
