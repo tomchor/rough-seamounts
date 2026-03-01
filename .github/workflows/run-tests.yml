@@ -52,9 +52,6 @@ jobs:
       - name: Install Julia packages
         run: julia --project=. -e 'import Pkg; Pkg.instantiate()'
 
-      - name: Generate synthetic bathymetry
-        run: julia --project=. tests/generate_test_bathymetry.jl
-
       - name: Create output directories
         run: mkdir -p simulations/data anims figures
 
