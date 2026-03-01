@@ -33,7 +33,7 @@ def get_submission_options(scheduler, job_size, gpu_type=None):
         if scheduler == "pbs":
             default_gpu_type = "v100"
             gpu_type_override = gpu_type if gpu_type is not None else default_gpu_type
-            options = [f"select=1:ncpus=1:ngpus=1:gpu_type={gpu_type_override}:mem=50GB"]
+            options = [f"select=1:ncpus=8:ngpus=1:gpu_type={gpu_type_override}:mem=50GB"]
         elif scheduler == "slurm":
             options = ["--ntasks=1",
                        "--constraint=gpu",
@@ -45,7 +45,7 @@ def get_submission_options(scheduler, job_size, gpu_type=None):
         if scheduler == "pbs":
             default_gpu_type = "cc80" # Compute capability 8.0
             gpu_type_override = gpu_type if gpu_type is not None else default_gpu_type
-            options = [f"select=1:ncpus=1:ngpus=1:gpu_type={gpu_type_override}:mem=200GB"]
+            options = [f"select=1:ncpus=8:ngpus=1:gpu_type={gpu_type_override}:mem=200GB"]
         elif scheduler == "slurm":
             options = ["--ntasks=1",
                        "--constraint=gpu",
@@ -57,7 +57,7 @@ def get_submission_options(scheduler, job_size, gpu_type=None):
         if scheduler == "pbs":
             default_gpu_type = "h100" # H100 GPUs specifically
             gpu_type_override = gpu_type if gpu_type is not None else default_gpu_type
-            options = [f"select=1:ncpus=1:ngpus=1:gpu_type={gpu_type_override}:mem=200GB",
+            options = [f"select=1:ncpus=8:ngpus=1:gpu_type={gpu_type_override}:mem=200GB",
                        "job_priority=regular"]
         elif scheduler == "slurm":
             options = ["--ntasks=1",
