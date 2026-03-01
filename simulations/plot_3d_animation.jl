@@ -1,3 +1,11 @@
+#+++ Headless guard — skip 3D animation when no display/OpenGL is available
+is_headless() = !haskey(ENV, "DISPLAY") || isempty(ENV["DISPLAY"])
+has_opengl()  = try !isempty(read(`glxinfo -B`, String)) catch; false end
+if is_headless() || !has_opengl()
+    @info "Headless environment or no OpenGL detected. Skipping 3D animation."
+else
+#---
+
 using Rasters
 import NCDatasets
 using GLMakie
@@ -121,3 +129,5 @@ end
 
 @info "Animation saved successfully to $animation_path"
 #---
+
+end # headless guard
