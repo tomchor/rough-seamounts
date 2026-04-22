@@ -67,8 +67,17 @@ jobs:
       - name: Install Julia packages
         run: julia --project=. -e 'import Pkg; Pkg.instantiate()'
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python packages
+        run: |
+          pip install xarray "dask[array]" numpy scipy cycler colorama netcdf4
+          pip install git+https://github.com/tomchor/pynanigans
+
       - name: Create output directories
-        run: mkdir -p simulations/data anims figures
+        run: mkdir -p simulations/data anims figures postprocessing/data
 
       - name: Run simulation
         env:
@@ -83,6 +92,11 @@ jobs:
           # requires OpenGL unavailable in CI. The verify step below checks that
           # the simulation itself and the 2D animation actually completed.
 
+      - name: Run postprocessing
+        run: |
+          cd postprocessing
+          python 00_postproc_ci.py
+
       - name: Verify outputs
         id: verify
         run: |
@@ -92,6 +106,9 @@ jobs:
           test -f simulations/data/aaai.ci_test.nc || { echo "FAIL: aaai output missing"; exit 1; }
           echo "=== Checking 2D animation ==="
           test -f anims/ci_test.mp4               || { echo "FAIL: 2D animation missing"; exit 1; }
+          echo "=== Checking postprocessing outputs ==="
+          test -f postprocessing/data/aaaa.ci_test.nc || { echo "FAIL: aaaa postprocessing output missing"; exit 1; }
+          test -f postprocessing/data/xyza.ci_test.nc || { echo "FAIL: xyza postprocessing output missing"; exit 1; }
           echo "=== All checks passed! ==="
 
       - name: Upload animation artifact

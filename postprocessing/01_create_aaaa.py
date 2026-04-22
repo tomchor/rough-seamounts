@@ -32,7 +32,8 @@ if not basename(__file__).startswith("00_postproc_"):
 #---
 
 for j, config in enumerate(runs):
-    simname = f"{simname_base}_" + aggregate_parameters(config, sep="_", prefix="")
+    suffix = aggregate_parameters(config, sep="_", prefix="")
+    simname = f"{simname_base}_{suffix}" if suffix else simname_base
 
     #+++ Open aaai dataset
     print(f"\nOpening {simname} aaai")
