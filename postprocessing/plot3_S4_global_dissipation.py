@@ -26,24 +26,17 @@ seamounts["dissip_scale"] = seamounts.velocity**3 / seamounts.height
 seamounts["mixing_scale"] = seamounts.dissip_scale
 seamounts["total_volume"] = seamounts.basal_radius_L**2 * seamounts.height
 
-seamounts["total_dissip_smooth"] = seamounts.dissip_linear * seamounts.dissip_scale * seamounts.total_volume
-seamounts["total_dissip_rough"] = seamounts.dissip_piecewise * seamounts.dissip_scale * seamounts.total_volume
+# ρ converts the kinematic rates into watts. It is applied here, where the totals are first
+# defined, so that re-running this cell interactively cannot apply it twice.
+seamounts["total_dissip_smooth"] = ρ * seamounts.dissip_linear * seamounts.dissip_scale * seamounts.total_volume
+seamounts["total_dissip_rough"] = ρ * seamounts.dissip_piecewise * seamounts.dissip_scale * seamounts.total_volume
 
-seamounts["total_mixing_linear"] = seamounts.mixing_linear * seamounts.mixing_scale * seamounts.total_volume
-seamounts["total_mixing_quadratic"] = seamounts.mixing_quadratic * seamounts.mixing_scale * seamounts.total_volume
-#---
+seamounts["total_mixing_linear"] = ρ * seamounts.mixing_linear * seamounts.mixing_scale * seamounts.total_volume
+seamounts["total_mixing_quadratic"] = ρ * seamounts.mixing_quadratic * seamounts.mixing_scale * seamounts.total_volume
 
-#+++ Convert to watts
-seamounts["total_dissip_smooth"] = seamounts.total_dissip_smooth * ρ
-seamounts.total_mixing_linear.attrs = dict(units="W", longer_name="KE dissipation")
-
-seamounts["total_dissip_rough"] = seamounts.total_dissip_rough * ρ
+seamounts.total_dissip_smooth.attrs = dict(units="W", longer_name="KE dissipation")
+seamounts.total_dissip_rough.attrs = dict(units="W", longer_name="KE dissipation")
 seamounts.total_mixing_linear.attrs = dict(units="W", longer_name="Buoyancy mixing")
-
-seamounts["total_mixing_linear"] = seamounts.total_mixing_linear * ρ
-seamounts.total_mixing_linear.attrs = dict(units="W", longer_name="Buoyancy mixing")
-
-seamounts["total_mixing_quadratic"] = seamounts.total_mixing_quadratic * ρ
 seamounts.total_mixing_quadratic.attrs = dict(units="W", longer_name="Buoyancy mixing")
 #---
 
