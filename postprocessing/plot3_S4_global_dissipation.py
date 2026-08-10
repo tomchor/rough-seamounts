@@ -147,7 +147,7 @@ plot_heatmaps_and_line(
     colorbar_label=r"Buoyancy mixing [W]",
     xlabel="Buoyancy mixing [W]",
     line_title="Buoyancy mixing\nper degree of latitude",
-    legend_labels=("Smooth", "Rough"),
+    legend_labels=("Linear", "Quadratic"),
     vmin=1e3,
     vmax=1e7,
     cmap="GnBu",
