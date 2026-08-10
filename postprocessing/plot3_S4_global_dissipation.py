@@ -15,12 +15,12 @@ top_lat = 75
 
 #+++ Dissipation calculations
 # Dissipation according to linear formula (smooth seamounts)
-seamounts["dissip_linear"] = 2e-2 * seamounts.Slope_Bu
-seamounts["dissip_minimum"] = 2e-2
+seamounts["dissip_linear"] = 4e-3 * seamounts.Slope_Bu
+seamounts["dissip_minimum"] = 4e-3
 seamounts["dissip_piecewise"] = np.maximum(seamounts.dissip_linear, seamounts.dissip_minimum)
 
-seamounts["mixing_linear"] = 2e-2 * seamounts.Slope_Bu
-seamounts["mixing_quadratic"] = 2e-2 * seamounts.Slope_Bu**2
+seamounts["mixing_linear"] = 4e-3 * seamounts.Slope_Bu
+seamounts["mixing_quadratic"] = 4e-3 * seamounts.Slope_Bu**2
 
 seamounts["dissip_scale"] = seamounts.velocity**3 / seamounts.height
 seamounts["mixing_scale"] = seamounts.dissip_scale
@@ -127,8 +127,8 @@ plot_heatmaps_and_line(
     xlabel="KE dissipation [W]",
     line_title="KE dissipation\nper degree of latitude",
     legend_labels=("Smooth", "Rough"),
-    vmin=1e4,
-    vmax=1e8,
+    vmin=2e3,
+    vmax=2e7,
     cmap="YlOrRd",
     output_filename="../figures/global_dissipation.pdf",
     top_lat=top_lat
@@ -148,8 +148,8 @@ plot_heatmaps_and_line(
     xlabel="Buoyancy mixing [W]",
     line_title="Buoyancy mixing\nper degree of latitude",
     legend_labels=("Linear", "Quadratic"),
-    vmin=1e3,
-    vmax=1e7,
+    vmin=2e2,
+    vmax=2e6,
     cmap="GnBu",
     output_filename="../figures/global_mixing.pdf",
     top_lat=top_lat

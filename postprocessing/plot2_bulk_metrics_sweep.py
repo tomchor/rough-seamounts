@@ -42,7 +42,7 @@ aaaa_sweep["γ"] = aaaa_sweep["∭ᵇε̄ₚdV"] / (aaaa_sweep["∭ᵇε̄ₚdV"
 aaaa_sweep["RoFr"] = aaaa_sweep.Ro_b * aaaa_sweep.Fr_b
 
 # Normalized dissipation rates
-norm_factor = aaaa_sweep.attrs["U∞"]**3 * aaaa_sweep.FWHM * aaaa_sweep.H
+norm_factor = aaaa_sweep.attrs["U∞"]**3 * aaaa_sweep.FWHM**2 # Assume ε̄ₖ scales as U^3 / H over a volume ~ W^2 H
 aaaa_sweep["ℰₖ"] = aaaa_sweep["∭ᵇε̄ₖdV"] / norm_factor
 aaaa_sweep["ℰₚ"] = aaaa_sweep["∭ᵇε̄ₚdV"] / norm_factor
 aaaa_sweep["γ"] = aaaa_sweep["∭ᵇε̄ₚdV"] / (aaaa_sweep["∭ᵇε̄ₚdV"] + aaaa_sweep["∭ᵇε̄ₖdV"])
@@ -123,8 +123,8 @@ print("  R2 linear (high Sb):", r2_lin_dissip_high_Sb)
 
 # Use fitted coefficients for reference lines
 
-dissip_lin_ref_smooth = 2e-2 * Sb_ref
-min_coeff_dissip_rough = 2e-2
+dissip_lin_ref_smooth = 4e-3 * Sb_ref
+min_coeff_dissip_rough = 4e-3
 dissip_piece_ref_rough = np.maximum(dissip_lin_ref_smooth, min_coeff_dissip_rough)
 
 # Fit curves to mixing data
@@ -151,7 +151,7 @@ ax.set_ylabel(f"Bulk mixing efficiency, {ax.get_ylabel()}", fontsize=13)
 
 for ax in (axes["a"], axes["b"]):
     ax.set_yscale("log")
-    ax.set_ylim(1e-5, 1)
+    ax.set_ylim(1e-6, 1)
 axes["c"].set_ylim(0, 1)
 
 # Add legends for line plots only (in each panel)
